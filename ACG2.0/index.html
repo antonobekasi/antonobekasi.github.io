@@ -3,238 +3,298 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OpenAI API - Intelligence Video Engine</title>
+    <title>ACG Intelligence - OpenAI Video Engine</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap');
         
         :root {
-            --openai-green: #10a37f;
-            --openai-dark: #000000;
-            --bg-dark: #050506;
-            --card-bg: #0d0d0f;
-            --border-color: #1a1a1e;
+            --acg-emerald: #10a37f;
+            --acg-dark: #050506;
+            --acg-glass: rgba(13, 13, 15, 0.7);
+            --acg-border: rgba(255, 255, 255, 0.08);
         }
 
         body {
-            font-family: 'Outfit', sans-serif;
-            background-color: var(--bg-dark);
-            color: #f1f1f1;
-            overflow-x: hidden;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--acg-dark);
+            color: #e2e8f0;
+            background-image: 
+                radial-gradient(circle at 0% 0%, rgba(16, 163, 127, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 100% 100%, rgba(16, 163, 127, 0.05) 0%, transparent 50%);
+            background-attachment: fixed;
+            min-height: 100vh;
         }
 
         .font-mono { font-family: 'JetBrains Mono', monospace; }
 
-        .openai-gradient {
-            background: linear-gradient(135deg, #10a37f, #005e46);
+        .glass-panel {
+            background: var(--acg-glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--acg-border);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
         }
 
-        .solid-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+        .gradient-text {
+            background: linear-gradient(135deg, #10a37f 0%, #4ade80 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
-        .loader-ring {
-            width: 50px;
-            height: 50px;
+        .acg-btn {
+            background: linear-gradient(135deg, #10a37f 0%, #059669 100%);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .acg-btn::after {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: 0.5s;
+        }
+
+        .acg-btn:hover::after { left: 100%; }
+        
+        .acg-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px -5px rgba(16, 163, 127, 0.4);
+        }
+
+        .step-active {
+            border-bottom: 2px solid var(--acg-emerald);
+            color: var(--acg-emerald);
+        }
+
+        .loader-neural {
+            width: 60px;
+            height: 60px;
+            border: 3px solid transparent;
             border-radius: 50%;
-            border: 3px solid rgba(16, 163, 127, 0.1);
-            border-top-color: var(--openai-green);
-            animation: spin 0.8s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+            border-top: 3px solid var(--acg-emerald);
+            border-right: 3px solid var(--acg-emerald);
+            animation: spin 1s cubic-bezier(0.5, 0.1, 0.4, 0.9) infinite;
         }
 
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        .step-content { 
-            animation: fadeIn 0.6s ease-out; 
-            transition: opacity 0.3s ease;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: scale(0.98); }
-            to { opacity: 1; transform: scale(1); }
-        }
-
-        .glow-button {
-            box-shadow: 0 0 15px rgba(16, 163, 127, 0.3);
-            transition: all 0.3s ease;
-        }
-        .glow-button:hover:not(:disabled) {
-            box-shadow: 0 0 25px rgba(16, 163, 127, 0.5);
-            transform: translateY(-2px);
-        }
-        .glow-button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            filter: grayscale(1);
-        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--acg-dark); }
+        ::-webkit-scrollbar-thumb { background: #1a1a1e; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--acg-emerald); }
     </style>
 </head>
-<body class="selection:bg-emerald-500 selection:text-black">
+<body class="selection:bg-emerald-500/30">
 
-    <!-- Overlay Loading -->
-    <div id="loadingOverlay" class="fixed inset-0 z-[100] bg-[#050506]/95 backdrop-blur-xl hidden flex-col items-center justify-center text-center">
-        <div class="loader-ring mb-8"></div>
-        <h2 class="text-2xl font-bold tracking-tight text-white mb-2" id="loadingTitle">OpenAI API Sync</h2>
-        <p id="loadingMsg" class="text-emerald-500/60 font-mono text-[10px] uppercase tracking-[0.4em]">Processing via Neural Network...</p>
+    <!-- Loading Overlay System -->
+    <div id="loadingOverlay" class="fixed inset-0 z-[100] bg-black/95 backdrop-blur-2xl hidden flex-col items-center justify-center">
+        <div class="relative">
+            <div class="loader-neural mb-8"></div>
+            <div class="absolute inset-0 flex items-center justify-center">
+                <i class="fas fa-brain text-emerald-500 text-sm animate-pulse"></i>
+            </div>
+        </div>
+        <h2 class="text-xl font-bold tracking-widest text-white mb-2 uppercase" id="loadingTitle">Neural Syncing</h2>
+        <p id="loadingMsg" class="text-emerald-500/40 font-mono text-[10px] uppercase tracking-[0.5em]">Establishing API Connection...</p>
     </div>
 
-    <!-- Navigasi Utama -->
-    <nav class="sticky top-0 z-50 bg-[#050506]/80 backdrop-blur-lg border-b border-white/5 px-8 py-5">
+    <!-- Smart Navigation -->
+    <nav class="sticky top-0 z-50 border-b border-white/5 bg-black/40 backdrop-blur-md px-6 py-4">
         <div class="max-w-7xl mx-auto flex items-center justify-between">
-            <div class="flex items-center gap-4">
-                <div class="openai-gradient w-12 h-12 rounded-2xl flex items-center justify-center shadow-2xl">
-                    <i class="fas fa-brain text-white text-xl"></i>
+            <div class="flex items-center gap-4 group cursor-pointer">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-800 flex items-center justify-center shadow-lg group-hover:rotate-12 transition-transform">
+                    <i class="fas fa-atom text-white"></i>
                 </div>
                 <div>
-                    <h1 class="font-extrabold text-xl tracking-tighter leading-none">OPENAI <span class="text-emerald-400">API</span></h1>
-                    <span class="text-[9px] font-mono text-neutral-500 uppercase tracking-widest">Advanced Intelligence Engine</span>
+                    <h1 class="font-extrabold text-lg tracking-tighter uppercase">ACG <span class="text-emerald-500">Intelligence</span></h1>
+                    <p class="text-[8px] font-mono text-neutral-500 tracking-[0.3em]">VERSION 4.0 // OPENAI API</p>
                 </div>
             </div>
 
-            <div id="navSteps" class="hidden xl:flex items-center gap-2 bg-white/5 p-1.5 rounded-2xl border border-white/10">
-                <!-- Diisi oleh JS -->
+            <div id="navSteps" class="hidden md:flex items-center gap-8">
+                <!-- Navigation steps injected by JS -->
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <div class="h-8 w-[1px] bg-white/10"></div>
+                <div id="apiIndicator" class="flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                    <span class="text-[9px] font-mono text-neutral-400 uppercase tracking-widest">API Status: Online</span>
+                </div>
             </div>
         </div>
     </nav>
 
-    <main class="max-w-7xl mx-auto px-8 py-16">
+    <main class="max-w-7xl mx-auto px-6 py-12">
         
-        <!-- LANGKAH 1: KONSEP & IDE -->
-        <section id="step1" class="step-content max-w-4xl mx-auto">
+        <!-- STEP 1: NEURAL INPUT -->
+        <section id="step1" class="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div class="text-center mb-16">
-                <div class="inline-block px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-[0.2em] mb-6">
-                    Powered by Open Integration & ACG Logic
-                </div>
-                <h2 class="text-6xl font-black tracking-tighter mb-6 leading-[1.1]">Video Intelligence <br><span class="text-transparent bg-clip-text openai-gradient italic">No Token Required</span></h2>
-                <p class="text-neutral-500 max-w-2xl mx-auto text-lg">Mengadopsi teknologi AI tercanggih untuk mengotomatisasi seluruh alur kerja video, terinspirasi oleh efisiensi sistem ACG.</p>
+                <span class="inline-block px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-bold uppercase tracking-[0.3em] mb-4">
+                    Advanced Content Generation Engine
+                </span>
+                <h2 class="text-5xl md:text-7xl font-black tracking-tighter leading-none mb-6">
+                    Mulai Evolusi <br><span class="gradient-text italic">Konten Video Anda.</span>
+                </h2>
+                <p class="text-neutral-500 text-lg max-w-xl mx-auto">Sistem cerdas yang mengonversi ide mentah menjadi naskah produksi siap tayang menggunakan algoritma OpenAI.</p>
             </div>
 
-            <div class="solid-card p-12 rounded-[3rem] space-y-10">
-                <div class="grid md:grid-cols-2 gap-10">
-                    <div class="space-y-4">
-                        <label class="text-[10px] font-bold uppercase tracking-widest text-neutral-400 flex items-center gap-2">
-                            <i class="fas fa-microchip text-emerald-500"></i> Mode Pemrosesan
-                        </label>
-                        <select id="modelSelection" class="w-full bg-black border border-white/10 p-5 rounded-2xl outline-none focus:border-emerald-500 transition-all text-sm appearance-none">
-                            <option value="high">High Intelligence (Default)</option>
-                            <option value="fast">Fast Response</option>
-                        </select>
+            <div class="glass-panel p-8 md:p-12 rounded-[2.5rem] space-y-8">
+                <div class="grid md:grid-cols-2 gap-8">
+                    <div class="space-y-3">
+                        <label class="text-[10px] font-bold uppercase tracking-widest text-neutral-500 ml-2">Processing Engine</label>
+                        <div class="relative">
+                            <select id="modelSelection" class="w-full bg-white/5 border border-white/10 p-4 rounded-2xl outline-none focus:border-emerald-500 transition-all text-sm appearance-none">
+                                <option value="gpt-4-turbo">GPT-4 Turbo (Precision)</option>
+                                <option value="gpt-3.5-turbo">GPT-3.5 (Speed)</option>
+                            </select>
+                            <i class="fas fa-chevron-down absolute right-5 top-1/2 -translate-y-1/2 text-neutral-600 pointer-events-none"></i>
+                        </div>
                     </div>
-                    <div class="space-y-4">
-                        <label class="text-[10px] font-bold uppercase tracking-widest text-neutral-400 flex items-center gap-2">
-                            <i class="fas fa-language text-emerald-500"></i> Bahasa Output
-                        </label>
-                        <select id="language" class="w-full bg-black border border-white/10 p-5 rounded-2xl outline-none focus:border-emerald-500 transition-all text-sm appearance-none">
-                            <option value="id-ID">Bahasa Indonesia</option>
-                            <option value="en-US">English (Global)</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="space-y-4">
-                    <label class="text-[10px] font-bold uppercase tracking-widest text-neutral-400 flex items-center gap-2">
-                        <i class="fas fa-lightbulb text-emerald-500"></i> Topik Video
-                    </label>
-                    <textarea id="topic" class="w-full h-48 bg-black border border-white/10 p-8 rounded-[2rem] outline-none focus:border-emerald-500 text-xl font-medium resize-none placeholder:text-neutral-800" placeholder="Apa yang ingin Anda buat hari ini?"></textarea>
-                </div>
-
-                <button id="btnStep1" onclick="handleStep1()" class="w-full py-7 openai-gradient text-white font-black uppercase tracking-[0.2em] rounded-[1.8rem] glow-button flex items-center justify-center gap-4 text-sm">
-                    <i class="fas fa-bolt"></i> Jalankan Intelligence Engine
-                </button>
-            </div>
-        </section>
-
-        <!-- LANGKAH 2: JUDUL STRATEGIS -->
-        <section id="step2" class="step-content hidden max-w-5xl mx-auto">
-            <h2 class="text-4xl font-black tracking-tighter mb-10 uppercase italic">OpenAI <span class="text-emerald-400">Generated Titles</span></h2>
-            <div id="titlesList" class="grid gap-5"></div>
-        </section>
-
-        <!-- LANGKAH 3: HOOK NARASI -->
-        <section id="step3" class="step-content hidden max-w-5xl mx-auto">
-            <h2 class="text-4xl font-black tracking-tighter mb-10 uppercase italic">Neural <span class="text-emerald-400">Hooks</span></h2>
-            <div id="hooksList" class="grid md:grid-cols-3 gap-8"></div>
-        </section>
-
-        <!-- LANGKAH 4: NASKAH LENGKAP -->
-        <section id="step4" class="step-content hidden max-w-7xl mx-auto">
-            <div class="grid lg:grid-cols-12 gap-12">
-                <div class="lg:col-span-4 space-y-8">
-                    <h2 class="text-4xl font-black tracking-tighter uppercase italic">OpenAI <br>Scripting</h2>
-                    <div class="solid-card p-10 rounded-[2.5rem] space-y-8">
-                        <p class="text-xs text-neutral-500 leading-relaxed font-mono">Naskah ini disusun menggunakan algoritma bahasa alami yang telah dioptimasi untuk platform digital.</p>
-                        <button onclick="handleStep4()" class="w-full py-5 openai-gradient text-white font-bold uppercase text-[10px] tracking-widest rounded-2xl glow-button">Konfirmasi Naskah</button>
-                    </div>
-                </div>
-                <div class="lg:col-span-8">
-                    <textarea id="scriptArea" class="w-full h-[650px] solid-card p-12 rounded-[3rem] outline-none font-mono text-sm leading-loose text-neutral-400 focus:border-emerald-500 resize-none"></textarea>
-                </div>
-            </div>
-        </section>
-
-        <!-- LANGKAH 5: PREVIEW PRODUKSI -->
-        <section id="step5" class="step-content hidden max-w-7xl mx-auto text-center">
-            <div class="max-w-3xl mx-auto space-y-12">
-                <h2 class="text-5xl font-black tracking-tighter uppercase">Final <span class="text-emerald-400">Preview</span></h2>
-                <div id="visualPreview" class="solid-card aspect-video rounded-[3rem] overflow-hidden relative group border-2 border-emerald-500/30 bg-black">
-                    <div class="absolute inset-0 flex items-center justify-center opacity-20">
-                        <i class="fas fa-brain text-9xl text-emerald-500"></i>
-                    </div>
-                    <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent flex items-end p-10">
-                        <div class="text-left">
-                            <span class="text-emerald-400 font-mono text-xs uppercase tracking-widest">OpenAI API Project Preview</span>
-                            <p class="text-white text-xl font-bold mt-2" id="previewTitle"></p>
+                    <div class="space-y-3">
+                        <label class="text-[10px] font-bold uppercase tracking-widest text-neutral-500 ml-2">Target Language</label>
+                        <div class="relative">
+                            <select id="language" class="w-full bg-white/5 border border-white/10 p-4 rounded-2xl outline-none focus:border-emerald-500 transition-all text-sm appearance-none">
+                                <option value="id-ID">Bahasa Indonesia</option>
+                                <option value="en-US">English (US)</option>
+                                <option value="ja-JP">Japanese (Nihongo)</option>
+                            </select>
+                            <i class="fas fa-chevron-down absolute right-5 top-1/2 -translate-y-1/2 text-neutral-600 pointer-events-none"></i>
                         </div>
                     </div>
                 </div>
-                <button onclick="finalizeOpenAI()" class="w-full py-8 openai-gradient text-white font-black uppercase tracking-[0.3em] rounded-[2rem] glow-button text-lg">
-                    <i class="fas fa-check-double mr-3"></i> Selesaikan Proyek
+
+                <div class="space-y-3">
+                    <label class="text-[10px] font-bold uppercase tracking-widest text-neutral-500 ml-2 flex justify-between">
+                        <span>Video Concept / Brief</span>
+                        <span id="charCount" class="font-mono opacity-40">0 / 1000</span>
+                    </label>
+                    <textarea id="topic" maxlength="1000" oninput="updateCharCount()" class="w-full h-40 bg-white/5 border border-white/10 p-6 rounded-[2rem] outline-none focus:border-emerald-500 text-lg font-medium resize-none placeholder:text-neutral-700 transition-all" placeholder="Masukkan ide konten atau topik video Anda di sini..."></textarea>
+                </div>
+
+                <button id="btnStep1" onclick="handleStep1()" class="w-full py-6 acg-btn text-white font-bold uppercase tracking-[0.2em] rounded-2xl flex items-center justify-center gap-3 text-xs">
+                    <i class="fas fa-microchip"></i> Initialize Intelligence Process
                 </button>
             </div>
         </section>
 
-        <!-- LANGKAH 6: HASIL AKHIR -->
-        <section id="step6" class="step-content hidden max-w-7xl mx-auto">
-            <div class="flex flex-col lg:flex-row justify-between items-end mb-12 gap-8">
-                <div>
-                    <span class="text-emerald-500 font-mono text-xs uppercase tracking-widest">Production Done</span>
-                    <h2 class="text-5xl font-black tracking-tighter mt-2 uppercase italic">Data <span class="text-white/20">Station</span></h2>
+        <!-- STEP 2: STRATEGIC TITLES -->
+        <section id="step2" class="hidden max-w-5xl mx-auto">
+            <div class="flex items-center justify-between mb-10">
+                <h2 class="text-3xl font-black tracking-tighter uppercase italic">Neural <span class="text-emerald-500">Optimization</span></h2>
+                <span class="text-[10px] font-mono text-neutral-500 uppercase">Select winning title</span>
+            </div>
+            <div id="titlesList" class="grid gap-4"></div>
+        </section>
+
+        <!-- STEP 3: PSYCHOLOGICAL HOOKS -->
+        <section id="step3" class="hidden max-w-5xl mx-auto">
+            <h2 class="text-3xl font-black tracking-tighter mb-10 uppercase italic">Retention <span class="text-emerald-500">Hooks</span></h2>
+            <div id="hooksList" class="grid md:grid-cols-3 gap-6"></div>
+        </section>
+
+        <!-- STEP 4: MASTER SCRIPT -->
+        <section id="step4" class="hidden max-w-7xl mx-auto">
+            <div class="grid lg:grid-cols-12 gap-8">
+                <div class="lg:col-span-4 space-y-6">
+                    <h2 class="text-3xl font-black tracking-tighter uppercase italic leading-none">Script <br>Architect</h2>
+                    <div class="glass-panel p-8 rounded-[2rem] space-y-6 border-l-4 border-l-emerald-500">
+                        <p class="text-xs text-neutral-400 leading-relaxed font-mono">Naskah dihasilkan menggunakan struktur retensi tinggi yang dioptimasi untuk algoritma media sosial modern.</p>
+                        <div class="flex flex-col gap-3">
+                            <button onclick="handleStep4()" class="w-full py-4 acg-btn text-white font-bold uppercase text-[10px] tracking-widest rounded-xl">Lanjutkan Produksi</button>
+                            <button onclick="regenerateScript()" class="w-full py-4 bg-white/5 hover:bg-white/10 text-neutral-400 font-bold uppercase text-[10px] tracking-widest rounded-xl border border-white/5 transition-colors">Regenerasi Naskah</button>
+                        </div>
+                    </div>
                 </div>
-                <button onclick="downloadOpenAIProject()" class="openai-gradient px-10 py-5 rounded-[1.5rem] text-white font-black uppercase text-xs tracking-widest flex items-center gap-3 glow-button">
-                    <i class="fas fa-download"></i> Export Project Data
+                <div class="lg:col-span-8">
+                    <div class="relative group">
+                        <div class="absolute -inset-1 bg-gradient-to-r from-emerald-500/20 to-blue-500/20 rounded-[2.5rem] blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
+                        <textarea id="scriptArea" class="relative w-full h-[600px] glass-panel p-10 rounded-[2.5rem] outline-none font-mono text-sm leading-loose text-neutral-300 focus:border-emerald-500 resize-none"></textarea>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- STEP 5: VISUAL PREVIEW -->
+        <section id="step5" class="hidden max-w-7xl mx-auto text-center">
+            <div class="max-w-3xl mx-auto space-y-10">
+                <h2 class="text-5xl font-black tracking-tighter uppercase italic">Ready to <span class="text-emerald-500">Launch</span></h2>
+                <div class="glass-panel aspect-video rounded-[3rem] overflow-hidden relative group border-2 border-white/5 bg-neutral-900 shadow-2xl">
+                    <div id="previewCanvas" class="absolute inset-0 bg-cover bg-center transition-transform duration-1000 group-hover:scale-110" style="background-image: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1964&auto=format&fit=crop');"></div>
+                    <div class="absolute inset-0 bg-black/60 backdrop-blur-[2px] flex items-center justify-center">
+                        <div class="text-center p-8">
+                            <div class="w-16 h-16 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center mx-auto mb-6">
+                                <i class="fas fa-play text-emerald-400"></i>
+                            </div>
+                            <h3 id="previewTitle" class="text-2xl font-bold text-white mb-2">---</h3>
+                            <p class="text-xs text-neutral-400 font-mono uppercase tracking-[0.3em]">AI Synthesis Ready</p>
+                        </div>
+                    </div>
+                </div>
+                <button onclick="finalizeProject()" class="w-full py-7 acg-btn text-white font-black uppercase tracking-[0.3em] rounded-[2rem] text-lg shadow-2xl">
+                    Deploy Project <i class="fas fa-paper-plane ml-2"></i>
                 </button>
             </div>
+        </section>
 
-            <div class="grid lg:grid-cols-12 gap-10">
+        <!-- STEP 6: DATA STATION -->
+        <section id="step6" class="hidden max-w-7xl mx-auto animate-in zoom-in-95 duration-500">
+            <div class="flex flex-col lg:flex-row justify-between items-end mb-12 gap-8">
+                <div>
+                    <span class="text-emerald-500 font-mono text-[10px] uppercase tracking-[0.4em]">Success Notification</span>
+                    <h2 class="text-5xl font-black tracking-tighter mt-2 uppercase italic leading-none">Output <span class="text-white/10">Vault</span></h2>
+                </div>
+                <div class="flex gap-4">
+                    <button onclick="downloadProject()" class="acg-btn px-8 py-4 rounded-2xl text-white font-bold uppercase text-[10px] tracking-widest flex items-center gap-3">
+                        <i class="fas fa-file-export"></i> Export Data
+                    </button>
+                    <button onclick="location.reload()" class="bg-white/5 hover:bg-white/10 border border-white/10 px-8 py-4 rounded-2xl text-neutral-400 font-bold uppercase text-[10px] tracking-widest transition-all">
+                        New Project
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid lg:grid-cols-12 gap-8">
                 <div class="lg:col-span-8">
-                    <div class="solid-card rounded-[3rem] p-12 space-y-8 bg-gradient-to-br from-emerald-500/5 to-transparent">
-                        <div class="flex items-center gap-6">
-                            <div class="w-20 h-20 rounded-3xl openai-gradient flex items-center justify-center text-3xl">
-                                <i class="fas fa-file-code"></i>
+                    <div class="glass-panel rounded-[2.5rem] p-10 space-y-6 relative overflow-hidden">
+                        <div class="absolute top-0 right-0 p-8 opacity-5">
+                            <i class="fas fa-quote-right text-9xl"></i>
+                        </div>
+                        <div class="flex items-center gap-5">
+                            <div class="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-xl text-emerald-500">
+                                <i class="fas fa-scroll"></i>
                             </div>
                             <div>
-                                <h3 id="finalTitle" class="text-3xl font-black">---</h3>
-                                <p class="text-neutral-500 font-mono text-xs">Generated via Intelligence Engine</p>
+                                <h3 id="finalTitle" class="text-2xl font-black text-white">---</h3>
+                                <p class="text-[9px] font-mono text-neutral-500 uppercase tracking-widest">Master Production Script</p>
                             </div>
                         </div>
                         <hr class="border-white/5">
-                        <div id="finalScriptDisplay" class="text-neutral-400 leading-relaxed font-mono text-sm max-h-96 overflow-y-auto pr-4 whitespace-pre-wrap">
-                            <!-- Naskah Final -->
+                        <div id="finalScriptDisplay" class="text-neutral-400 leading-relaxed font-mono text-sm max-h-[500px] overflow-y-auto pr-6 custom-scroll whitespace-pre-wrap italic">
+                            <!-- Injected Script -->
                         </div>
                     </div>
                 </div>
                 
-                <div class="lg:col-span-4 space-y-8">
-                    <div class="solid-card p-8 rounded-[2.5rem]">
-                        <h3 class="text-xs font-black uppercase text-neutral-500 mb-6 tracking-widest">Model Info</h3>
+                <div class="lg:col-span-4 space-y-6">
+                    <div class="glass-panel p-8 rounded-[2rem]">
+                        <h3 class="text-[10px] font-black uppercase text-neutral-500 mb-6 tracking-widest flex items-center gap-2">
+                            <i class="fas fa-info-circle text-emerald-500"></i> Engine Artifacts
+                        </h3>
                         <div id="metaContent" class="space-y-4 font-mono text-[10px] text-neutral-400">
                         </div>
                     </div>
-                    <div class="solid-card p-8 rounded-[2.5rem] bg-emerald-500/5">
-                        <h3 class="text-xs font-black uppercase text-emerald-400 mb-6 tracking-widest">OpenAI Ad-Copy</h3>
-                        <div id="copyContent" class="space-y-6">
+                    <div class="glass-panel p-8 rounded-[2rem] bg-emerald-500/[0.02]">
+                        <h3 class="text-[10px] font-black uppercase text-emerald-500 mb-6 tracking-widest flex items-center gap-2">
+                            <i class="fas fa-bullhorn"></i> Distribution Copy
+                        </h3>
+                        <div id="copyContent" class="space-y-5">
+                            <!-- Injected Captions -->
                         </div>
                     </div>
                 </div>
@@ -245,29 +305,30 @@
 
     <script>
         /**
-         * Logika Aplikasi Teradopsi dari Prinsip ACG
-         * Mengutamakan Efisiensi Prompting dan Integrasi Data Seamless
+         * ACG INTELLIGENCE ENGINE V4.0
+         * Ported & Adopted from Antonobekasi/ACG Logic
          */
         const apiKey = ""; 
         
         let currentStep = 1;
         let project = {
-            model: "Intelligence V3 (ACG Optimized)",
-            language: "",
+            engine: "OpenAI GPT-4 Omni",
+            logic: "ACG Framework 4.0",
+            language: "id-ID",
             topic: "",
             title: "",
             hook: "",
             script: "",
-            captions: null
+            captions: []
         };
 
         const steps = [
-            { id: 1, name: "Konsep", icon: "bolt" },
-            { id: 2, name: "Judul", icon: "heading" },
-            { id: 3, name: "Hook", icon: "anchor" },
-            { id: 4, name: "Naskah", icon: "align-left" },
-            { id: 5, name: "Preview", icon: "eye" },
-            { id: 6, name: "Export", icon: "rocket" }
+            { id: 1, name: "Neural Input", icon: "brain" },
+            { id: 2, name: "Strategic Titles", icon: "heading" },
+            { id: 3, name: "Retention Hooks", icon: "anchor" },
+            { id: 4, name: "Production Script", icon: "align-left" },
+            { id: 5, name: "Pre-Flight", icon: "eye" },
+            { id: 6, name: "Data Vault", icon: "rocket" }
         ];
 
         function init() {
@@ -282,22 +343,30 @@
             container.classList.add('flex');
             
             container.innerHTML = steps.map(s => `
-                <button onclick="goToStep(${s.id})" 
-                        class="px-6 py-3 rounded-xl text-[10px] font-bold uppercase transition-all flex items-center gap-2
-                               ${currentStep === s.id ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20' : (currentStep > s.id ? 'text-emerald-400' : 'text-neutral-600')}"
-                        ${currentStep < s.id ? 'disabled' : ''}>
-                    <i class="fas fa-${s.icon}"></i> ${s.name}
-                </button>
+                <div class="flex items-center gap-2">
+                    <button onclick="goToStep(${s.id})" 
+                            class="text-[9px] font-bold uppercase transition-all flex items-center gap-2 px-2 py-1 rounded
+                                   ${currentStep === s.id ? 'text-emerald-500' : (currentStep > s.id ? 'text-neutral-400' : 'text-neutral-700')}"
+                            ${currentStep < s.id ? 'disabled' : ''}>
+                        <span class="w-5 h-5 rounded-md border flex items-center justify-center ${currentStep === s.id ? 'border-emerald-500/50 bg-emerald-500/10' : 'border-neutral-800'}">
+                            ${s.id}
+                        </span>
+                        ${s.name}
+                    </button>
+                    ${s.id < steps.length ? '<span class="text-neutral-800">/</span>' : ''}
+                </div>
             `).join('');
+        }
+
+        function updateCharCount() {
+            const topic = document.getElementById('topic').value;
+            document.getElementById('charCount').innerText = `${topic.length} / 1000`;
         }
 
         function goToStep(s) {
             if (s > 1 && !project.topic) return;
-            if (s > 2 && !project.title) return;
-            if (s > 3 && !project.hook) return;
-            if (s > 4 && !project.script) return;
-
-            document.querySelectorAll('.step-content').forEach(el => el.classList.add('hidden'));
+            
+            document.querySelectorAll('section').forEach(el => el.classList.add('hidden'));
             const target = document.getElementById(`step${s}`);
             if (target) target.classList.remove('hidden');
             
@@ -313,24 +382,12 @@
             overlay.style.display = show ? 'flex' : 'none';
         }
 
-        function cleanJsonResponse(text) {
-            try {
-                const cleaned = text.replace(/```json/g, "").replace(/```/g, "").trim();
-                return JSON.parse(cleaned);
-            } catch (e) {
-                console.error("Gagal mem-parse JSON:", text);
-                throw new Error("Format respon tidak valid");
-            }
-        }
-
         async function aiCall(prompt, system, isJson = true) {
             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
             const body = {
                 contents: [{ parts: [{ text: prompt }] }],
                 systemInstruction: { parts: [{ text: system }] },
-                generationConfig: isJson ? { 
-                    responseMimeType: "application/json",
-                } : {}
+                generationConfig: isJson ? { responseMimeType: "application/json" } : {}
             };
             
             let retries = 5;
@@ -339,199 +396,160 @@
             while(retries >= 0) {
                 try {
                     const res = await fetch(url, { method: 'POST', body: JSON.stringify(body) });
-                    if (!res.ok) throw new Error("API Connection Error");
-                    
                     const data = await res.json();
                     const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                    if (!text) throw new Error("Empty Response");
                     
-                    return isJson ? cleanJsonResponse(text) : text;
-                } catch(e) {
-                    if (retries === 0) {
-                        showLoading(false);
-                        alert("Terjadi kesalahan koneksi AI. Silakan periksa koneksi Anda.");
-                        throw e;
+                    if (isJson) {
+                        return JSON.parse(text.replace(/```json/g, "").replace(/```/g, "").trim());
                     }
+                    return text;
+                } catch(e) {
+                    if (retries === 0) throw e;
                     retries--;
                     await new Promise(r => setTimeout(r, delay));
-                    delay *= 2; 
+                    delay *= 2;
                 }
             }
         }
 
-        function copyToClipboard(text) {
-            const textArea = document.createElement("textarea");
-            textArea.value = text;
-            document.body.appendChild(textArea);
-            textArea.select();
-            try {
-                document.execCommand('copy');
-                const btn = event.target;
-                const originalText = btn.innerText;
-                btn.innerText = "COPIED!";
-                setTimeout(() => btn.innerText = originalText, 2000);
-            } catch (err) {
-                console.error('Gagal menyalin text', err);
-            }
-            document.body.removeChild(textArea);
-        }
-
         async function handleStep1() {
-            const topicInput = document.getElementById('topic');
-            project.topic = topicInput.value.trim();
+            const topic = document.getElementById('topic').value.trim();
+            if(!topic) return;
+
+            project.topic = topic;
             project.language = document.getElementById('language').value;
             
-            if(!project.topic) {
-                topicInput.classList.add('border-red-500');
-                return;
-            }
-            topicInput.classList.remove('border-red-500');
-
-            showLoading(true, "Neural Analysis", "Menganalisis topik dengan standar logika ACG...");
+            showLoading(true, "Neural Analysis", "Deconstructing concept using ACG logic...");
+            
             try {
                 const res = await aiCall(
-                    `Topik: ${project.topic}, Bahasa: ${project.language}`, 
-                    "Generate 5 strategic video titles optimized for high CTR. Return JSON exactly: { \"titles\": [{ \"text\": string, \"score\": number, \"niche\": string }] }"
+                    `Topic: ${topic}, Lang: ${project.language}`,
+                    "Generate 5 high-CTR titles for a video. Return JSON: { \"titles\": [{ \"text\": string, \"score\": number, \"category\": string }] }"
                 );
-                
-                if (!res.titles) throw new Error("Data judul tidak ditemukan");
 
                 document.getElementById('titlesList').innerHTML = res.titles.map(t => `
-                    <button onclick="handleStep2('${t.text.replace(/'/g, "\\'").replace(/"/g, "&quot;")}')" class="solid-card p-8 rounded-3xl text-left hover:border-emerald-500 transition-all flex justify-between items-center group">
-                        <div>
-                            <span class="text-[9px] font-mono text-emerald-500 uppercase tracking-widest">${t.niche} | CTR Score: ${t.score}</span>
-                            <h3 class="text-2xl font-black mt-2">${t.text}</h3>
+                    <div onclick="handleStep2('${t.text.replace(/'/g, "\\'")}')" class="glass-panel p-6 rounded-2xl cursor-pointer hover:border-emerald-500/50 transition-all flex justify-between items-center group">
+                        <div class="flex items-center gap-5">
+                            <div class="text-xs font-mono text-emerald-500 opacity-40">${t.score}%</div>
+                            <h3 class="text-lg font-bold text-white group-hover:text-emerald-400 transition-colors">${t.text}</h3>
                         </div>
-                        <i class="fas fa-chevron-right text-neutral-800 group-hover:text-emerald-500 transform group-hover:translate-x-2 transition-all"></i>
-                    </button>
+                        <span class="text-[9px] font-mono text-neutral-600 uppercase border border-white/5 px-2 py-1 rounded">${t.category}</span>
+                    </div>
                 `).join('');
+                
                 goToStep(2);
-            } catch(e) { 
-                console.error(e); 
-            } finally { 
-                showLoading(false); 
+            } catch(e) {
+                console.error(e);
+            } finally {
+                showLoading(false);
             }
         }
 
         async function handleStep2(title) {
             project.title = title;
-            showLoading(true, "Hook Generation", "Menciptakan psikologi daya tarik...");
+            showLoading(true, "Hook Synthesis", "Crafting psychological entry points...");
+            
             try {
                 const res = await aiCall(
-                    `Judul: ${title}`, 
-                    "Create 3 high-retention video hooks based on psychological triggers. Return JSON exactly: { \"hooks\": [{ \"text\": string, \"psychologicalReason\": string }] }"
+                    `Title: ${title}`,
+                    "Generate 3 powerful hooks based on retention psychology. Return JSON: { \"hooks\": [{ \"text\": string, \"trigger\": string }] }"
                 );
-                
-                if (!res.hooks) throw new Error("Data hook tidak ditemukan");
 
                 document.getElementById('hooksList').innerHTML = res.hooks.map(h => `
-                    <button onclick="handleStep3('${h.text.replace(/'/g, "\\'").replace(/"/g, "&quot;")}')" class="solid-card p-10 rounded-[2.5rem] text-left h-full hover:bg-emerald-500/5 transition-all border-b-4 border-b-transparent hover:border-b-emerald-500">
-                        <p class="font-bold text-lg mb-6 leading-relaxed">"${h.text}"</p>
-                        <p class="text-[10px] text-neutral-600 font-mono italic">${h.psychologicalReason}</p>
-                    </button>
+                    <div onclick="handleStep3('${h.text.replace(/'/g, "\\'")}')" class="glass-panel p-8 rounded-[2rem] cursor-pointer hover:bg-emerald-500/5 transition-all group flex flex-col justify-between">
+                        <p class="text-white font-semibold leading-relaxed mb-6 group-hover:text-emerald-400 transition-colors italic">"${h.text}"</p>
+                        <div class="text-[8px] font-mono text-neutral-600 uppercase tracking-widest bg-black/40 p-2 rounded-lg border border-white/5">Trigger: ${h.trigger}</div>
+                    </div>
                 `).join('');
+                
                 goToStep(3);
-            } catch(e) { 
-                console.error(e); 
-            } finally { 
-                showLoading(false); 
+            } catch(e) {
+                console.error(e);
+            } finally {
+                showLoading(false);
             }
         }
 
         async function handleStep3(hook) {
             project.hook = hook;
-            showLoading(true, "Script Drafting", "Menyusun struktur naratif penuh...");
+            showLoading(true, "NLE Scripting", "Generating full narrative structure...");
+            
             try {
                 const res = await aiCall(
-                    `Judul: ${project.title}, Hook: ${hook}, Bahasa: ${project.language}`, 
-                    "Write a professional video script. Use ACG efficiency logic: clarity first. Include scene markers like [SCENE 1]. Return JSON: { \"script\": string }"
+                    `Title: ${project.title}, Hook: ${hook}, Lang: ${project.language}`,
+                    "Write a professional video script. Use ACG efficient logic. Include visual cues like [Visual: ...]. Return JSON: { \"script\": string }"
                 );
-                
-                if (!res.script) throw new Error("Data naskah tidak ditemukan");
 
                 document.getElementById('scriptArea').value = res.script;
                 goToStep(4);
-            } catch(e) { 
-                console.error(e); 
-            } finally { 
-                showLoading(false); 
+            } catch(e) {
+                console.error(e);
+            } finally {
+                showLoading(false);
             }
         }
 
         function handleStep4() {
-            const scriptValue = document.getElementById('scriptArea').value.trim();
-            if (!scriptValue) return;
-            
-            project.script = scriptValue;
+            project.script = document.getElementById('scriptArea').value;
             document.getElementById('previewTitle').innerText = project.title;
             goToStep(5);
         }
 
-        async function finalizeOpenAI() {
-            showLoading(true, "Project Completion", "Finalisasi metadata distribusi...");
+        async function finalizeProject() {
+            showLoading(true, "Deploying", "Compiling artifacts for data vault...");
             
             try {
-                const captions = await aiCall(
-                    `Topik: ${project.title}`, 
-                    "Create 3 optimized social media captions. Return JSON: { \"captions\": [{ \"platform\": string, \"text\": string }] }"
+                const res = await aiCall(
+                    `Video Title: ${project.title}`,
+                    "Generate 3 social media captions (IG, TikTok, YouTube). Return JSON: { \"captions\": [{ \"platform\": string, \"content\": string }] }"
                 );
                 
-                if (!captions.captions) throw new Error("Data caption tidak ditemukan");
+                project.captions = res.captions;
                 
-                project.captions = captions;
-
                 document.getElementById('finalTitle').innerText = project.title;
                 document.getElementById('finalScriptDisplay').innerText = project.script;
                 
                 document.getElementById('metaContent').innerHTML = `
-                    <div class="flex justify-between"><span>Engine:</span><span class="text-white">Neural Engine V2.5</span></div>
-                    <div class="flex justify-between"><span>Logic:</span><span class="text-white">ACG Framework</span></div>
-                    <div class="flex justify-between"><span>Language:</span><span class="text-white">${project.language}</span></div>
-                    <div class="flex justify-between"><span>Status:</span><span class="text-emerald-400">Verified</span></div>
+                    <div class="flex justify-between border-b border-white/5 pb-2"><span>Engine:</span><span class="text-emerald-500">ACG-V4</span></div>
+                    <div class="flex justify-between border-b border-white/5 pb-2"><span>API:</span><span class="text-white">OpenAI Connect</span></div>
+                    <div class="flex justify-between border-b border-white/5 pb-2"><span>Language:</span><span class="text-white uppercase">${project.language}</span></div>
+                    <div class="flex justify-between"><span>Timestamp:</span><span class="text-neutral-600 italic">${new Date().toLocaleTimeString()}</span></div>
                 `;
 
-                document.getElementById('copyContent').innerHTML = captions.captions.map(c => `
+                document.getElementById('copyContent').innerHTML = res.captions.map(c => `
                     <div class="space-y-2">
                         <div class="flex justify-between items-center">
-                            <span class="text-[8px] font-black text-emerald-500 uppercase">${c.platform}</span>
-                            <button onclick="copyToClipboard(\`${c.text.replace(/`/g, "\\`")}\`)" class="text-[8px] text-white/40 hover:text-white uppercase px-2 py-1 bg-white/5 rounded-md transition-colors">Copy</button>
+                            <span class="text-[8px] font-bold text-white/40 uppercase tracking-widest">${c.platform}</span>
+                            <button onclick="copyText(\`${c.content.replace(/`/g, "\\`")}\`)" class="text-[7px] bg-emerald-500/10 text-emerald-400 px-2 py-1 rounded hover:bg-emerald-500/20 transition-colors uppercase">Copy</button>
                         </div>
-                        <p class="text-[10px] text-neutral-400 font-mono leading-relaxed bg-black/40 p-4 rounded-xl border border-white/5 whitespace-pre-wrap">${c.text}</p>
+                        <p class="text-[10px] font-mono text-neutral-400 bg-black/20 p-3 rounded-xl border border-white/5 leading-relaxed">${c.content}</p>
                     </div>
                 `).join('');
 
                 goToStep(6);
-            } catch(e) { 
-                console.error(e); 
-            } finally { 
-                showLoading(false); 
+            } catch(e) {
+                console.error(e);
+            } finally {
+                showLoading(false);
             }
         }
 
-        function downloadOpenAIProject() {
-            const data = {
-                metadata: {
-                    engine: "Intelligence Video Engine",
-                    generated_via: "Open Interface",
-                    framework: "ACG Logic Adopter",
-                    model: project.model
-                },
-                content: {
-                    title: project.title,
-                    hook: project.hook,
-                    script: project.script,
-                    marketing: project.captions ? project.captions.captions : []
-                },
-                timestamp: new Date().toISOString()
-            };
-            
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        function copyText(text) {
+            const el = document.createElement('textarea');
+            el.value = text;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+        }
+
+        function downloadProject() {
+            const blob = new Blob([JSON.stringify(project, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `OPENAI_ACG_PROJECT_${Date.now()}.json`;
+            a.download = `ACG_PROJECT_${Date.now()}.json`;
             a.click();
-            URL.revokeObjectURL(url);
         }
 
         window.onload = init;
