@@ -107,7 +107,7 @@
         ];
 
         const App = () => {
-            const apiKey = ""; // API Key dikelola oleh sistem runtime
+            const apiKey = ""; // API Key dikelola secara otomatis oleh sistem runtime
             const [currentStep, setCurrentStep] = useState(1);
             const [loading, setLoading] = useState(false);
             const [loadingMsg, setLoadingMsg] = useState("");
@@ -169,6 +169,7 @@
             }, [currentStep, speakGuide]);
 
             const callGemini = async (prompt, systemPrompt) => {
+                // Menggunakan endpoint yang didukung dengan skema otentikasi otomatis
                 const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
                 const payload = {
                     contents: [{ parts: [{ text: prompt }] }],
@@ -178,6 +179,7 @@
                     }
                 };
 
+                // Implementasi Exponential Backoff (Maksimal 5 percobaan)
                 let delay = 1000;
                 for (let i = 0; i < 5; i++) {
                     try {
@@ -197,7 +199,7 @@
                         
                         if (!text) throw new Error("AI tidak memberikan jawaban");
 
-                        // Pembersihan teks JSON yang lebih kuat
+                        // Pembersihan teks JSON dari markdown block jika ada
                         text = text.trim();
                         if (text.startsWith("```json")) text = text.replace(/^```json/, "");
                         if (text.startsWith("```")) text = text.replace(/^```/, "");
@@ -233,30 +235,50 @@
             };
 
             const handleTitleSelect = async (t) => {
-                setLoading(true); setLoadingMsg("Membuat hook..."); setData(p => ({ ...p, selectedTitle: t }));
+                setLoading(true); 
+                setLoadingMsg("Membuat hook..."); 
+                setData(p => ({ ...p, selectedTitle: t }));
+                setError(null);
                 try {
                     const res = await callGemini(t, "Berikan 2 hook viral. Format JSON: { \"hooks\": [\"H1\", \"H2\"] }");
                     setData(p => ({ ...p, hooks: Array.isArray(res.hooks) ? res.hooks : [] }));
                     setCurrentStep(3);
-                } catch (e) { setError(`Gagal membuat hook: ${e.message}`); } finally { setLoading(false); }
+                } catch (e) { 
+                    setError(`Gagal membuat hook: ${e.message}`); 
+                } finally { 
+                    setLoading(false); 
+                }
             };
 
             const handleHookSelect = async (h) => {
-                setLoading(true); setLoadingMsg("Menyusun naskah..."); setData(p => ({ ...p, selectedHook: h }));
+                setLoading(true); 
+                setLoadingMsg("Menyusun naskah..."); 
+                setData(p => ({ ...p, selectedHook: h }));
+                setError(null);
                 try {
                     const res = await callGemini(`Judul: ${data.selectedTitle}, Hook: ${h}`, "Buat naskah video pendek dan caption Instagram. Format JSON: { \"script\": \"...\", \"caption\": \"...\" }");
                     setData(p => ({ ...p, script: res.script, caption: res.caption }));
                     setCurrentStep(4);
-                } catch (e) { setError(`Gagal menyusun naskah: ${e.message}`); } finally { setLoading(false); }
+                } catch (e) { 
+                    setError(`Gagal menyusun naskah: ${e.message}`); 
+                } finally { 
+                    setLoading(false); 
+                }
             };
 
             const handleGoToPrompt = async () => {
-                setLoading(true); setLoadingMsg("Menghasilkan Prompt Visual...");
+                setLoading(true); 
+                setLoadingMsg("Menghasilkan Prompt Visual...");
+                setError(null);
                 try {
                     const res = await callGemini(data.script, "Berdasarkan naskah ini, buat 3 prompt detail untuk AI Video Generator (Luma/Kling). Berikan prompt dalam bahasa Inggris yang mendeskripsikan gerakan kamera dan detail sinematik. Format JSON: { \"imagePrompts\": [{\"scene\": \"Deskripsi Scene\", \"prompt\": \"Cinematic English Prompt with camera movements\"}] }");
                     setData(p => ({ ...p, imagePrompts: Array.isArray(res.imagePrompts) ? res.imagePrompts : [] }));
                     setCurrentStep(5);
-                } catch (e) { setError(`Gagal membuat prompt visual: ${e.message}`); } finally { setLoading(false); }
+                } catch (e) { 
+                    setError(`Gagal membuat prompt visual: ${e.message}`); 
+                } finally { 
+                    setLoading(false); 
+                }
             };
 
             const generateVideo = (prompt) => {
