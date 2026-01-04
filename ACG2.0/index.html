@@ -105,10 +105,10 @@
         <section id="step1" class="step-content max-w-4xl mx-auto">
             <div class="text-center mb-16">
                 <div class="inline-block px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-[0.2em] mb-6">
-                    Powered by Open Integration
+                    Powered by Open Integration & ACG Logic
                 </div>
                 <h2 class="text-6xl font-black tracking-tighter mb-6 leading-[1.1]">Video Intelligence <br><span class="text-transparent bg-clip-text openai-gradient italic">No Token Required</span></h2>
-                <p class="text-neutral-500 max-w-2xl mx-auto text-lg">Gunakan kekuatan AI untuk mengotomatisasi seluruh alur kerja video mulai dari ide hingga naskah akhir tanpa perlu konfigurasi API Key.</p>
+                <p class="text-neutral-500 max-w-2xl mx-auto text-lg">Mengadopsi teknologi AI tercanggih untuk mengotomatisasi seluruh alur kerja video, terinspirasi oleh efisiensi sistem ACG.</p>
             </div>
 
             <div class="solid-card p-12 rounded-[3rem] space-y-10">
@@ -164,7 +164,7 @@
                 <div class="lg:col-span-4 space-y-8">
                     <h2 class="text-4xl font-black tracking-tighter uppercase italic">OpenAI <br>Scripting</h2>
                     <div class="solid-card p-10 rounded-[2.5rem] space-y-8">
-                        <p class="text-xs text-neutral-500 leading-relaxed font-mono">Naskah ini disusun menggunakan algoritma bahasa alami untuk memastikan konversi tinggi.</p>
+                        <p class="text-xs text-neutral-500 leading-relaxed font-mono">Naskah ini disusun menggunakan algoritma bahasa alami yang telah dioptimasi untuk platform digital.</p>
                         <button onclick="handleStep4()" class="w-full py-5 openai-gradient text-white font-bold uppercase text-[10px] tracking-widest rounded-2xl glow-button">Konfirmasi Naskah</button>
                     </div>
                 </div>
@@ -244,12 +244,15 @@
     </main>
 
     <script>
-        // API Key disediakan oleh runtime
+        /**
+         * Logika Aplikasi Teradopsi dari Prinsip ACG
+         * Mengutamakan Efisiensi Prompting dan Integrasi Data Seamless
+         */
         const apiKey = ""; 
         
         let currentStep = 1;
         let project = {
-            model: "Intelligence V3",
+            model: "Intelligence V3 (ACG Optimized)",
             language: "",
             topic: "",
             title: "",
@@ -289,7 +292,6 @@
         }
 
         function goToStep(s) {
-            // Validasi: Jangan biarkan pindah ke depan jika data belum ada
             if (s > 1 && !project.topic) return;
             if (s > 2 && !project.title) return;
             if (s > 3 && !project.hook) return;
@@ -311,12 +313,8 @@
             overlay.style.display = show ? 'flex' : 'none';
         }
 
-        /**
-         * Helper untuk membersihkan output JSON dari model AI yang mungkin mengandung markdown blocks
-         */
         function cleanJsonResponse(text) {
             try {
-                // Menghapus block markdown ```json ... ``` jika ada
                 const cleaned = text.replace(/```json/g, "").replace(/```/g, "").trim();
                 return JSON.parse(cleaned);
             } catch (e) {
@@ -325,10 +323,6 @@
             }
         }
 
-        /**
-         * Fungsi pemanggilan AI menggunakan infrastruktur yang tersedia
-         * Implementasi exponential backoff sesuai instruksi
-         */
         async function aiCall(prompt, system, isJson = true) {
             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
             const body = {
@@ -355,7 +349,7 @@
                 } catch(e) {
                     if (retries === 0) {
                         showLoading(false);
-                        alert("Terjadi kesalahan koneksi AI setelah beberapa kali percobaan. Silakan periksa koneksi Anda.");
+                        alert("Terjadi kesalahan koneksi AI. Silakan periksa koneksi Anda.");
                         throw e;
                     }
                     retries--;
@@ -365,9 +359,6 @@
             }
         }
 
-        /**
-         * Pengganti navigator.clipboard untuk kompatibilitas iframe
-         */
         function copyToClipboard(text) {
             const textArea = document.createElement("textarea");
             textArea.value = text;
@@ -396,11 +387,11 @@
             }
             topicInput.classList.remove('border-red-500');
 
-            showLoading(true, "Neural Analysis", "Menganalisis topik melalui jaringan saraf...");
+            showLoading(true, "Neural Analysis", "Menganalisis topik dengan standar logika ACG...");
             try {
                 const res = await aiCall(
                     `Topik: ${project.topic}, Bahasa: ${project.language}`, 
-                    "Generate 5 strategic video titles. Return JSON exactly: { \"titles\": [{ \"text\": string, \"score\": number, \"niche\": string }] }"
+                    "Generate 5 strategic video titles optimized for high CTR. Return JSON exactly: { \"titles\": [{ \"text\": string, \"score\": number, \"niche\": string }] }"
                 );
                 
                 if (!res.titles) throw new Error("Data judul tidak ditemukan");
@@ -408,7 +399,7 @@
                 document.getElementById('titlesList').innerHTML = res.titles.map(t => `
                     <button onclick="handleStep2('${t.text.replace(/'/g, "\\'").replace(/"/g, "&quot;")}')" class="solid-card p-8 rounded-3xl text-left hover:border-emerald-500 transition-all flex justify-between items-center group">
                         <div>
-                            <span class="text-[9px] font-mono text-emerald-500 uppercase tracking-widest">${t.niche} | Score: ${t.score}</span>
+                            <span class="text-[9px] font-mono text-emerald-500 uppercase tracking-widest">${t.niche} | CTR Score: ${t.score}</span>
                             <h3 class="text-2xl font-black mt-2">${t.text}</h3>
                         </div>
                         <i class="fas fa-chevron-right text-neutral-800 group-hover:text-emerald-500 transform group-hover:translate-x-2 transition-all"></i>
@@ -424,11 +415,11 @@
 
         async function handleStep2(title) {
             project.title = title;
-            showLoading(true, "Hook Generation", "Menciptakan daya tarik narasi...");
+            showLoading(true, "Hook Generation", "Menciptakan psikologi daya tarik...");
             try {
                 const res = await aiCall(
                     `Judul: ${title}`, 
-                    "Create 3 high-retention video hooks. Return JSON exactly: { \"hooks\": [{ \"text\": string, \"psychologicalReason\": string }] }"
+                    "Create 3 high-retention video hooks based on psychological triggers. Return JSON exactly: { \"hooks\": [{ \"text\": string, \"psychologicalReason\": string }] }"
                 );
                 
                 if (!res.hooks) throw new Error("Data hook tidak ditemukan");
@@ -449,11 +440,11 @@
 
         async function handleStep3(hook) {
             project.hook = hook;
-            showLoading(true, "Script Drafting", "Menyusun narasi lengkap...");
+            showLoading(true, "Script Drafting", "Menyusun struktur naratif penuh...");
             try {
                 const res = await aiCall(
                     `Judul: ${project.title}, Hook: ${hook}, Bahasa: ${project.language}`, 
-                    "Write a full video script with high engagement. Include scene markers like [SCENE 1]. Return JSON: { \"script\": string }"
+                    "Write a professional video script. Use ACG efficiency logic: clarity first. Include scene markers like [SCENE 1]. Return JSON: { \"script\": string }"
                 );
                 
                 if (!res.script) throw new Error("Data naskah tidak ditemukan");
@@ -477,12 +468,12 @@
         }
 
         async function finalizeOpenAI() {
-            showLoading(true, "Project Completion", "Finalisasi metadata dan konten pemasaran...");
+            showLoading(true, "Project Completion", "Finalisasi metadata distribusi...");
             
             try {
                 const captions = await aiCall(
                     `Topik: ${project.title}`, 
-                    "Create 3 social media captions. Return JSON: { \"captions\": [{ \"platform\": string, \"text\": string }] }"
+                    "Create 3 optimized social media captions. Return JSON: { \"captions\": [{ \"platform\": string, \"text\": string }] }"
                 );
                 
                 if (!captions.captions) throw new Error("Data caption tidak ditemukan");
@@ -494,8 +485,8 @@
                 
                 document.getElementById('metaContent').innerHTML = `
                     <div class="flex justify-between"><span>Engine:</span><span class="text-white">Neural Engine V2.5</span></div>
+                    <div class="flex justify-between"><span>Logic:</span><span class="text-white">ACG Framework</span></div>
                     <div class="flex justify-between"><span>Language:</span><span class="text-white">${project.language}</span></div>
-                    <div class="flex justify-between"><span>Script Length:</span><span class="text-white">${project.script.length} chars</span></div>
                     <div class="flex justify-between"><span>Status:</span><span class="text-emerald-400">Verified</span></div>
                 `;
 
@@ -522,6 +513,7 @@
                 metadata: {
                     engine: "Intelligence Video Engine",
                     generated_via: "Open Interface",
+                    framework: "ACG Logic Adopter",
                     model: project.model
                 },
                 content: {
@@ -537,12 +529,11 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `OPENAI_PROJECT_${Date.now()}.json`;
+            a.download = `OPENAI_ACG_PROJECT_${Date.now()}.json`;
             a.click();
             URL.revokeObjectURL(url);
         }
 
-        // Jalankan inisialisasi
         window.onload = init;
     </script>
 </body>
