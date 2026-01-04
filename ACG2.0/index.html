@@ -1,558 +1,630 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ACG Intelligence - OpenAI Video Engine</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap');
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  Sparkles, Type, Anchor, List, Clapperboard, 
+  ImageIcon, Hash, Cpu, Wand2, ChevronLeft, 
+  ChevronRight, Copy, Loader2,
+  AlertCircle, CheckCircle2, Play, Volume2, 
+  Video, Download, Share2, RefreshCcw
+} from 'lucide-react';
+
+/**
+ * NYETAK ACG - Versi 6.1 (Cinema Pro Update)
+ * Perbaikan Bug: JSON Parsing, Audio Logic, & API Resilience
+ */
+
+const API_KEY = ""; 
+const APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'nyetak-acg-v6';
+
+const App = () => {
+  const [step, setStep] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [loadingMsg, setLoadingMsg] = useState("");
+  const [error, setError] = useState(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [audioUrl, setAudioUrl] = useState(null);
+  
+  const audioRef = useRef(null);
+
+  // State Proyek Utama
+  const [project, setProject] = useState({
+    niche: "Entertainment",
+    topic: "",
+    audience: "",
+    tone: "Storytelling",
+    titles: [],
+    selectedTitle: "",
+    hooks: [],
+    selectedHook: "",
+    format: "YouTube Long Video",
+    outline: "",
+    script: "",
+    thumbnail: {
+      image: null,
+      mainText: "",
+      subText: "",
+      visualPrompt: "",
+      designReasoning: ""
+    }
+  });
+
+  // --- HELPER: Pembersih Respons AI ---
+  const cleanJsonString = (str) => {
+    // Menghapus blok kode markdown jika ada
+    return str.replace(/```json/g, '').replace(/```/g, '').trim();
+  };
+
+  // --- API CORE (Exponential Backoff) ---
+  const callAI = async (prompt, systemPrompt, isJson = true) => {
+    let retries = 0;
+    const maxRetries = 5;
+    const delays = [1000, 2000, 4000, 8000, 16000];
+    
+    const payload = {
+      contents: [{ parts: [{ text: prompt }] }],
+      systemInstruction: { parts: [{ text: systemPrompt }] },
+      generationConfig: isJson ? { responseMimeType: "application/json" } : {}
+    };
+
+    while (retries <= maxRetries) {
+      try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${API_KEY}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
         
-        :root {
-            --acg-emerald: #10a37f;
-            --acg-dark: #050506;
-            --acg-glass: rgba(13, 13, 15, 0.7);
-            --acg-border: rgba(255, 255, 255, 0.08);
+        if (!response.ok) {
+          const errData = await response.json();
+          throw new Error(errData.error?.message || `HTTP ${response.status}`);
         }
 
-        body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: var(--acg-dark);
-            color: #e2e8f0;
-            background-image: 
-                radial-gradient(circle at 0% 0%, rgba(16, 163, 127, 0.05) 0%, transparent 50%),
-                radial-gradient(circle at 100% 100%, rgba(16, 163, 127, 0.05) 0%, transparent 50%);
-            background-attachment: fixed;
-            min-height: 100vh;
-        }
-
-        .font-mono { font-family: 'JetBrains Mono', monospace; }
-
-        .glass-panel {
-            background: var(--acg-glass);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--acg-border);
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-        }
-
-        .gradient-text {
-            background: linear-gradient(135deg, #10a37f 0%, #4ade80 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .acg-btn {
-            background: linear-gradient(135deg, #10a37f 0%, #059669 100%);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .acg-btn::after {
-            content: '';
-            position: absolute;
-            top: 0; left: -100%;
-            width: 100%; height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            transition: 0.5s;
-        }
-
-        .acg-btn:hover::after { left: 100%; }
+        const data = await response.json();
+        const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
         
-        .acg-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px -5px rgba(16, 163, 127, 0.4);
+        if (!rawText) throw new Error("AI mengembalikan respons kosong.");
+        
+        if (isJson) {
+          try {
+            return JSON.parse(cleanJsonString(rawText));
+          } catch (e) {
+            console.error("JSON Parse Error:", rawText);
+            throw new Error("Format data AI tidak valid.");
+          }
         }
+        return rawText;
+      } catch (err) {
+        if (retries === maxRetries) throw err;
+        await new Promise(r => setTimeout(r, delays[retries]));
+        retries++;
+      }
+    }
+  };
 
-        .step-active {
-            border-bottom: 2px solid var(--acg-emerald);
-            color: var(--acg-emerald);
-        }
+  // --- TTS ENGINE ---
+  const generateVoice = async (scriptText) => {
+    try {
+      const payload = {
+        contents: [{ parts: [{ text: `Narrate this in a ${project.tone} tone: ${scriptText.substring(0, 1200)}` }] }],
+        generationConfig: { 
+          responseModalities: ["AUDIO"],
+          speechConfig: { 
+            voiceConfig: { 
+              prebuiltVoiceConfig: { voiceName: "Puck" } 
+            } 
+          } 
+        },
+        model: "gemini-2.5-flash-preview-tts"
+      };
 
-        .loader-neural {
-            width: 60px;
-            height: 60px;
-            border: 3px solid transparent;
-            border-radius: 50%;
-            border-top: 3px solid var(--acg-emerald);
-            border-right: 3px solid var(--acg-emerald);
-            animation: spin 1s cubic-bezier(0.5, 0.1, 0.4, 0.9) infinite;
-        }
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
 
-        @keyframes spin { to { transform: rotate(360deg); } }
+      const result = await response.json();
+      const pcmBase64 = result.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+      
+      if (!pcmBase64) return null;
+      
+      const wavBlob = pcmToWav(pcmBase64, 24000); 
+      return URL.createObjectURL(wavBlob);
+    } catch (err) {
+      console.error("Gagal generate audio:", err);
+      return null;
+    }
+  };
 
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: var(--acg-dark); }
-        ::-webkit-scrollbar-thumb { background: #1a1a1e; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: var(--acg-emerald); }
-    </style>
-</head>
-<body class="selection:bg-emerald-500/30">
+  const pcmToWav = (base64, sampleRate) => {
+    const buffer = Uint8Array.from(atob(base64), c => c.charCodeAt(0)).buffer;
+    const length = buffer.byteLength;
+    const view = new DataView(new ArrayBuffer(44 + length));
 
-    <!-- Loading Overlay System -->
-    <div id="loadingOverlay" class="fixed inset-0 z-[100] bg-black/95 backdrop-blur-2xl hidden flex-col items-center justify-center">
-        <div class="relative">
-            <div class="loader-neural mb-8"></div>
-            <div class="absolute inset-0 flex items-center justify-center">
-                <i class="fas fa-brain text-emerald-500 text-sm animate-pulse"></i>
-            </div>
+    const writeString = (offset, string) => {
+      for (let i = 0; i < string.length; i++) {
+        view.setUint8(offset + i, string.charCodeAt(i));
+      }
+    };
+
+    writeString(0, 'RIFF');
+    view.setUint32(4, 36 + length, true);
+    writeString(8, 'WAVE');
+    writeString(12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, 1, true); // Mono
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * 2, true);
+    view.setUint16(32, 2, true);
+    view.setUint16(34, 16, true);
+    writeString(36, 'data');
+    view.setUint32(40, length, true);
+
+    const data = new Uint8Array(buffer);
+    for (let i = 0; i < length; i++) {
+      view.setUint8(44 + i, data[i]);
+    }
+    return new Blob([view], { type: 'audio/wav' });
+  };
+
+  const generateVisual = async (prompt, ratio) => {
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=${API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          instances: [{ prompt }],
+          parameters: { sampleCount: 1, aspectRatio: ratio }
+        })
+      });
+      const data = await response.json();
+      const b64 = data.predictions?.[0]?.bytesBase64Encoded;
+      return b64 ? `data:image/png;base64,${b64}` : null;
+    } catch (err) {
+      console.warn("Imagen failed, continuing without image.");
+      return null;
+    }
+  };
+
+  // --- LOGIKA ALUR ---
+
+  const handleStep1 = async () => {
+    if (!project.topic.trim()) return;
+    setLoading(true);
+    setError(null);
+    setLoadingMsg("Menganalisis Tren & Algoritma...");
+    try {
+      const system = `Spesialis Strategi Viral. JSON { "titles": [{ "text": "string", "score": number, "reasoning": "string" }] }.`;
+      const res = await callAI(`Buatkan 3 judul viral untuk topik: ${project.topic}. Tone: ${project.tone}`, system);
+      if (!res.titles || res.titles.length === 0) throw new Error("Gagal mendapatkan judul.");
+      setProject(prev => ({ ...prev, titles: res.titles }));
+      setStep(2);
+    } catch (e) { setError(e.message); }
+    finally { setLoading(false); }
+  };
+
+  const handleStep2 = async (title) => {
+    setLoading(true);
+    setError(null);
+    setLoadingMsg("Menciptakan Hook Retensi Tinggi...");
+    try {
+      const system = `Expert Audience Retention. JSON { "hooks": [{ "text": "string", "type": "string" }] }.`;
+      const res = await callAI(`Judul terpilih: ${title}. Berikan 3 pilihan hook pembuka.`, system);
+      setProject(prev => ({ ...prev, selectedTitle: title, hooks: res.hooks || [] }));
+      setStep(3);
+    } catch (e) { setError(e.message); }
+    finally { setLoading(false); }
+  };
+
+  const handleStep3 = async (hook) => {
+    setLoading(true);
+    setError(null);
+    setLoadingMsg("Menyusun Arsitektur Konten...");
+    try {
+      const system = `Content Architect. JSON { "outline": "string" }.`;
+      const res = await callAI(`Buat outline video untuk judul: ${project.selectedTitle} dengan hook: ${hook}`, system);
+      setProject(prev => ({ ...prev, selectedHook: hook, outline: res.outline || "" }));
+      setStep(4);
+    } catch (e) { setError(e.message); }
+    finally { setLoading(false); }
+  };
+
+  const handleStep4 = async () => {
+    setLoading(true);
+    setError(null);
+    setLoadingMsg("Menulis Naskah Sinematik...");
+    try {
+      const system = `Master Storyteller. Buat naskah narasi lengkap. Gunakan tag [SCENE X] untuk instruksi visual.`;
+      const res = await callAI(`Tulis naskah berdasarkan outline: ${project.outline}`, system, false);
+      setProject(prev => ({ ...prev, script: res }));
+      setStep(5);
+    } catch (e) { setError(e.message); }
+    finally { setLoading(false); }
+  };
+
+  const handleStep5 = async () => {
+    setLoading(true);
+    setError(null);
+    setLoadingMsg("Neural Cinema Rendering...");
+    try {
+      const system = `Visual Director. JSON { "visualPrompt": "string", "mainText": "string", "subText": "string" }.`;
+      const visualData = await callAI(`Berdasarkan naskah ini, buat prompt gambar sinematik: ${project.script.substring(0, 500)}`, system);
+      
+      const ratio = project.format.includes("TikTok") ? "9:16" : "16:9";
+      const img = await generateVisual(visualData.visualPrompt || "Cinematic atmosphere", ratio);
+      const vUrl = await generateVoice(project.script);
+      
+      setAudioUrl(vUrl);
+      setProject(prev => ({ 
+        ...prev, 
+        thumbnail: { ...visualData, image: img } 
+      }));
+      setStep(6);
+    } catch (e) { setError(e.message); }
+    finally { setLoading(false); }
+  };
+
+  const togglePlayback = () => {
+    if (!audioRef.current) return;
+    if (isPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play().catch(e => setError("Gagal memutar audio."));
+    }
+    setIsPlaying(!isPlaying);
+  };
+
+  const Nav = () => (
+    <nav className="sticky top-0 z-50 bg-[#0A0A0A]/80 backdrop-blur-xl border-b border-neutral-800 px-6 py-4 flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <div className="bg-[#a3e635] p-2 rounded-lg rotate-3 shadow-[0_0_20px_rgba(163,230,53,0.4)]">
+          <Clapperboard className="text-black" size={20} />
         </div>
-        <h2 class="text-xl font-bold tracking-widest text-white mb-2 uppercase" id="loadingTitle">Neural Syncing</h2>
-        <p id="loadingMsg" class="text-emerald-500/40 font-mono text-[10px] uppercase tracking-[0.5em]">Establishing API Connection...</p>
-    </div>
-
-    <!-- Smart Navigation -->
-    <nav class="sticky top-0 z-50 border-b border-white/5 bg-black/40 backdrop-blur-md px-6 py-4">
-        <div class="max-w-7xl mx-auto flex items-center justify-between">
-            <div class="flex items-center gap-4 group cursor-pointer">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-800 flex items-center justify-center shadow-lg group-hover:rotate-12 transition-transform">
-                    <i class="fas fa-atom text-white"></i>
-                </div>
-                <div>
-                    <h1 class="font-extrabold text-lg tracking-tighter uppercase">ACG <span class="text-emerald-500">Intelligence</span></h1>
-                    <p class="text-[8px] font-mono text-neutral-500 tracking-[0.3em]">VERSION 4.0 // OPENAI API</p>
-                </div>
-            </div>
-
-            <div id="navSteps" class="hidden md:flex items-center gap-8">
-                <!-- Navigation steps injected by JS -->
-            </div>
-            
-            <div class="flex items-center gap-4">
-                <div class="h-8 w-[1px] bg-white/10"></div>
-                <div id="apiIndicator" class="flex items-center gap-2">
-                    <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                    <span class="text-[9px] font-mono text-neutral-400 uppercase tracking-widest">API Status: Online</span>
-                </div>
-            </div>
-        </div>
+        <span className="font-black tracking-tighter text-white uppercase italic text-xl">
+          NYETAK <span className="text-[#a3e635]">CINEMA</span>
+        </span>
+      </div>
+      <div className="flex gap-2">
+        {[1,2,3,4,5,6].map(i => (
+          <div key={i} className={`h-1.5 w-6 md:w-10 rounded-full transition-all duration-500 ${step >= i ? 'bg-[#a3e635]' : 'bg-neutral-800'}`} />
+        ))}
+      </div>
     </nav>
+  );
 
-    <main class="max-w-7xl mx-auto px-6 py-12">
+  return (
+    <div className="min-h-screen bg-[#050505] text-neutral-300 font-sans selection:bg-[#a3e635] selection:text-black pb-20">
+      <Nav />
+      
+      <main className="max-w-7xl mx-auto p-6 md:p-12">
         
-        <!-- STEP 1: NEURAL INPUT -->
-        <section id="step1" class="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <div class="text-center mb-16">
-                <span class="inline-block px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-bold uppercase tracking-[0.3em] mb-4">
-                    Advanced Content Generation Engine
-                </span>
-                <h2 class="text-5xl md:text-7xl font-black tracking-tighter leading-none mb-6">
-                    Mulai Evolusi <br><span class="gradient-text italic">Konten Video Anda.</span>
-                </h2>
-                <p class="text-neutral-500 text-lg max-w-xl mx-auto">Sistem cerdas yang mengonversi ide mentah menjadi naskah produksi siap tayang menggunakan algoritma OpenAI.</p>
+        {/* STEP 1: INPUT */}
+        {step === 1 && (
+          <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-5">
+            <header className="text-center space-y-4">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#a3e635]/10 border border-[#a3e635]/20 text-[#a3e635] text-xs font-bold uppercase tracking-widest">
+                <Cpu size={14}/> v6.1 Neural Engine Active
+              </div>
+              <h1 className="text-5xl md:text-6xl font-black text-white uppercase italic tracking-tighter leading-none">
+                PRODUKSI <span className="text-[#a3e635]">TANPA BATAS.</span>
+              </h1>
+              <p className="text-neutral-500 font-medium">Sistem AI terintegrasi untuk judul, naskah, suara, dan visual.</p>
+            </header>
+
+            <div className="bg-neutral-900/40 border border-neutral-800 p-8 rounded-[3rem] space-y-6 shadow-2xl backdrop-blur-sm">
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.2em] ml-2">Apa topik video Anda?</label>
+                <textarea 
+                  value={project.topic}
+                  onChange={e => setProject({...project, topic: e.target.value})}
+                  className="w-full h-44 bg-black/60 border border-neutral-800 p-6 rounded-3xl outline-none focus:border-[#a3e635] focus:ring-1 focus:ring-[#a3e635]/30 text-lg font-medium resize-none transition-all placeholder:text-neutral-700"
+                  placeholder="Contoh: Misteri hilangnya peradaban Atlantis atau Tips diet sehat 30 hari..."
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest ml-2">Tone Konten</label>
+                  <select 
+                    value={project.tone} 
+                    onChange={e => setProject({...project, tone: e.target.value})}
+                    className="w-full bg-black/60 border border-neutral-800 p-4 rounded-2xl outline-none focus:border-[#a3e635] text-xs font-bold uppercase text-white appearance-none cursor-pointer"
+                  >
+                    {["Mind-Blowing", "Edukatif", "Storytelling", "Misteri", "Sarkastik", "Emosional"].map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest ml-2">Format Media</label>
+                  <select 
+                    value={project.format} 
+                    onChange={e => setProject({...project, format: e.target.value})}
+                    className="w-full bg-black/60 border border-neutral-800 p-4 rounded-2xl outline-none focus:border-[#a3e635] text-xs font-bold uppercase text-white appearance-none cursor-pointer"
+                  >
+                    {["YouTube Long Video", "TikTok / Reels"].map(f => <option key={f} value={f}>{f}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <button 
+                onClick={handleStep1}
+                disabled={!project.topic.trim()}
+                className="w-full py-6 bg-[#a3e635] text-black font-black uppercase tracking-[0.3em] rounded-2xl hover:bg-[#b4f04c] disabled:opacity-10 transition-all flex items-center justify-center gap-3 shadow-[0_10px_30px_rgba(163,230,53,0.2)] active:scale-[0.98]"
+              >
+                MULAI GENERATE <Wand2 size={20} />
+              </button>
             </div>
+          </div>
+        )}
 
-            <div class="glass-panel p-8 md:p-12 rounded-[2.5rem] space-y-8">
-                <div class="grid md:grid-cols-2 gap-8">
-                    <div class="space-y-3">
-                        <label class="text-[10px] font-bold uppercase tracking-widest text-neutral-500 ml-2">Processing Engine</label>
-                        <div class="relative">
-                            <select id="modelSelection" class="w-full bg-white/5 border border-white/10 p-4 rounded-2xl outline-none focus:border-emerald-500 transition-all text-sm appearance-none">
-                                <option value="gpt-4-turbo">GPT-4 Turbo (Precision)</option>
-                                <option value="gpt-3.5-turbo">GPT-3.5 (Speed)</option>
-                            </select>
-                            <i class="fas fa-chevron-down absolute right-5 top-1/2 -translate-y-1/2 text-neutral-600 pointer-events-none"></i>
-                        </div>
+        {/* STEP 2: TITLES */}
+        {step === 2 && (
+          <div className="max-w-4xl mx-auto space-y-6 animate-in slide-in-from-right-10 duration-500">
+            <div className="flex items-center gap-4 mb-4">
+               <button onClick={() => setStep(1)} className="p-3 hover:bg-neutral-900 rounded-full transition-colors"><ChevronLeft/></button>
+               <h2 className="text-3xl font-black text-white italic tracking-tighter uppercase">Viral <span className="text-[#a3e635]">Headlines</span></h2>
+            </div>
+            <div className="grid gap-4">
+              {project.titles.map((t, i) => (
+                <button 
+                  key={i}
+                  onClick={() => handleStep2(t.text)}
+                  className="bg-neutral-900/60 p-8 rounded-3xl flex items-center justify-between border border-neutral-800 hover:border-[#a3e635] hover:bg-[#a3e635]/5 transition-all group text-left shadow-lg"
+                >
+                  <div className="flex-1 pr-6">
+                    <div className="flex items-center gap-3 mb-2">
+                       <span className="text-[10px] font-black text-[#a3e635] bg-[#a3e635]/10 px-2 py-0.5 rounded uppercase">Score: {t.score}%</span>
                     </div>
-                    <div class="space-y-3">
-                        <label class="text-[10px] font-bold uppercase tracking-widest text-neutral-500 ml-2">Target Language</label>
-                        <div class="relative">
-                            <select id="language" class="w-full bg-white/5 border border-white/10 p-4 rounded-2xl outline-none focus:border-emerald-500 transition-all text-sm appearance-none">
-                                <option value="id-ID">Bahasa Indonesia</option>
-                                <option value="en-US">English (US)</option>
-                                <option value="ja-JP">Japanese (Nihongo)</option>
-                            </select>
-                            <i class="fas fa-chevron-down absolute right-5 top-1/2 -translate-y-1/2 text-neutral-600 pointer-events-none"></i>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="space-y-3">
-                    <label class="text-[10px] font-bold uppercase tracking-widest text-neutral-500 ml-2 flex justify-between">
-                        <span>Video Concept / Brief</span>
-                        <span id="charCount" class="font-mono opacity-40">0 / 1000</span>
-                    </label>
-                    <textarea id="topic" maxlength="1000" oninput="updateCharCount()" class="w-full h-40 bg-white/5 border border-white/10 p-6 rounded-[2rem] outline-none focus:border-emerald-500 text-lg font-medium resize-none placeholder:text-neutral-700 transition-all" placeholder="Masukkan ide konten atau topik video Anda di sini..."></textarea>
-                </div>
-
-                <button id="btnStep1" onclick="handleStep1()" class="w-full py-6 acg-btn text-white font-bold uppercase tracking-[0.2em] rounded-2xl flex items-center justify-center gap-3 text-xs">
-                    <i class="fas fa-microchip"></i> Initialize Intelligence Process
+                    <h3 className="text-2xl font-bold text-white group-hover:text-[#a3e635] leading-tight mb-2">{t.text}</h3>
+                    <p className="text-xs text-neutral-500 line-clamp-1">{t.reasoning}</p>
+                  </div>
+                  <ChevronRight size={32} className="text-neutral-800 group-hover:text-[#a3e635] transition-transform group-hover:translate-x-1" />
                 </button>
+              ))}
             </div>
-        </section>
+          </div>
+        )}
 
-        <!-- STEP 2: STRATEGIC TITLES -->
-        <section id="step2" class="hidden max-w-5xl mx-auto">
-            <div class="flex items-center justify-between mb-10">
-                <h2 class="text-3xl font-black tracking-tighter uppercase italic">Neural <span class="text-emerald-500">Optimization</span></h2>
-                <span class="text-[10px] font-mono text-neutral-500 uppercase">Select winning title</span>
+        {/* STEP 3: HOOKS */}
+        {step === 3 && (
+          <div className="max-w-4xl mx-auto space-y-6 animate-in slide-in-from-right-10">
+            <div className="flex items-center gap-4 mb-4">
+               <button onClick={() => setStep(2)} className="p-3 hover:bg-neutral-900 rounded-full transition-colors"><ChevronLeft/></button>
+               <h2 className="text-3xl font-black text-white italic tracking-tighter uppercase">Retention <span className="text-[#a3e635]">Hooks</span></h2>
             </div>
-            <div id="titlesList" class="grid gap-4"></div>
-        </section>
-
-        <!-- STEP 3: PSYCHOLOGICAL HOOKS -->
-        <section id="step3" class="hidden max-w-5xl mx-auto">
-            <h2 class="text-3xl font-black tracking-tighter mb-10 uppercase italic">Retention <span class="text-emerald-500">Hooks</span></h2>
-            <div id="hooksList" class="grid md:grid-cols-3 gap-6"></div>
-        </section>
-
-        <!-- STEP 4: MASTER SCRIPT -->
-        <section id="step4" class="hidden max-w-7xl mx-auto">
-            <div class="grid lg:grid-cols-12 gap-8">
-                <div class="lg:col-span-4 space-y-6">
-                    <h2 class="text-3xl font-black tracking-tighter uppercase italic leading-none">Script <br>Architect</h2>
-                    <div class="glass-panel p-8 rounded-[2rem] space-y-6 border-l-4 border-l-emerald-500">
-                        <p class="text-xs text-neutral-400 leading-relaxed font-mono">Naskah dihasilkan menggunakan struktur retensi tinggi yang dioptimasi untuk algoritma media sosial modern.</p>
-                        <div class="flex flex-col gap-3">
-                            <button onclick="handleStep4()" class="w-full py-4 acg-btn text-white font-bold uppercase text-[10px] tracking-widest rounded-xl">Lanjutkan Produksi</button>
-                            <button onclick="regenerateScript()" class="w-full py-4 bg-white/5 hover:bg-white/10 text-neutral-400 font-bold uppercase text-[10px] tracking-widest rounded-xl border border-white/5 transition-colors">Regenerasi Naskah</button>
-                        </div>
-                    </div>
-                </div>
-                <div class="lg:col-span-8">
-                    <div class="relative group">
-                        <div class="absolute -inset-1 bg-gradient-to-r from-emerald-500/20 to-blue-500/20 rounded-[2.5rem] blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
-                        <textarea id="scriptArea" class="relative w-full h-[600px] glass-panel p-10 rounded-[2.5rem] outline-none font-mono text-sm leading-loose text-neutral-300 focus:border-emerald-500 resize-none"></textarea>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- STEP 5: VISUAL PREVIEW -->
-        <section id="step5" class="hidden max-w-7xl mx-auto text-center">
-            <div class="max-w-3xl mx-auto space-y-10">
-                <h2 class="text-5xl font-black tracking-tighter uppercase italic">Ready to <span class="text-emerald-500">Launch</span></h2>
-                <div class="glass-panel aspect-video rounded-[3rem] overflow-hidden relative group border-2 border-white/5 bg-neutral-900 shadow-2xl">
-                    <div id="previewCanvas" class="absolute inset-0 bg-cover bg-center transition-transform duration-1000 group-hover:scale-110" style="background-image: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1964&auto=format&fit=crop');"></div>
-                    <div class="absolute inset-0 bg-black/60 backdrop-blur-[2px] flex items-center justify-center">
-                        <div class="text-center p-8">
-                            <div class="w-16 h-16 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center mx-auto mb-6">
-                                <i class="fas fa-play text-emerald-400"></i>
-                            </div>
-                            <h3 id="previewTitle" class="text-2xl font-bold text-white mb-2">---</h3>
-                            <p class="text-xs text-neutral-400 font-mono uppercase tracking-[0.3em]">AI Synthesis Ready</p>
-                        </div>
-                    </div>
-                </div>
-                <button onclick="finalizeProject()" class="w-full py-7 acg-btn text-white font-black uppercase tracking-[0.3em] rounded-[2rem] text-lg shadow-2xl">
-                    Deploy Project <i class="fas fa-paper-plane ml-2"></i>
+            <div className="grid md:grid-cols-3 gap-6">
+              {project.hooks.map((h, i) => (
+                <button 
+                  key={i}
+                  onClick={() => handleStep3(h.text)}
+                  className="p-8 bg-neutral-900/60 border border-neutral-800 rounded-[2.5rem] text-left hover:bg-[#a3e635]/5 hover:border-[#a3e635] transition-all flex flex-col justify-between group shadow-xl"
+                >
+                  <div className="mb-6 italic font-medium text-white/90 leading-relaxed text-lg">"{h.text}"</div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase text-neutral-400 bg-black/40 px-3 py-1.5 rounded-xl border border-white/5">{h.type}</span>
+                    <CheckCircle2 size={16} className="text-neutral-800 group-hover:text-[#a3e635]" />
+                  </div>
                 </button>
+              ))}
             </div>
-        </section>
+          </div>
+        )}
 
-        <!-- STEP 6: DATA STATION -->
-        <section id="step6" class="hidden max-w-7xl mx-auto animate-in zoom-in-95 duration-500">
-            <div class="flex flex-col lg:flex-row justify-between items-end mb-12 gap-8">
-                <div>
-                    <span class="text-emerald-500 font-mono text-[10px] uppercase tracking-[0.4em]">Success Notification</span>
-                    <h2 class="text-5xl font-black tracking-tighter mt-2 uppercase italic leading-none">Output <span class="text-white/10">Vault</span></h2>
-                </div>
-                <div class="flex gap-4">
-                    <button onclick="downloadProject()" class="acg-btn px-8 py-4 rounded-2xl text-white font-bold uppercase text-[10px] tracking-widest flex items-center gap-3">
-                        <i class="fas fa-file-export"></i> Export Data
-                    </button>
-                    <button onclick="location.reload()" class="bg-white/5 hover:bg-white/10 border border-white/10 px-8 py-4 rounded-2xl text-neutral-400 font-bold uppercase text-[10px] tracking-widest transition-all">
-                        New Project
-                    </button>
-                </div>
+        {/* STEP 4: OUTLINE */}
+        {step === 4 && (
+          <div className="max-w-5xl mx-auto space-y-6 animate-in slide-in-from-right-10">
+            <div className="flex justify-between items-center mb-4">
+               <div className="flex items-center gap-4">
+                  <button onClick={() => setStep(3)} className="p-3 hover:bg-neutral-900 rounded-full transition-colors"><ChevronLeft/></button>
+                  <h2 className="text-3xl font-black text-white italic tracking-tighter uppercase">Content <span className="text-[#a3e635]">Architecture</span></h2>
+               </div>
+               <button onClick={handleStep4} className="px-8 py-3 bg-[#a3e635] text-black font-black uppercase text-xs tracking-widest rounded-xl hover:scale-105 transition-transform shadow-lg shadow-[#a3e635]/20">Tulis Naskah</button>
             </div>
-
-            <div class="grid lg:grid-cols-12 gap-8">
-                <div class="lg:col-span-8">
-                    <div class="glass-panel rounded-[2.5rem] p-10 space-y-6 relative overflow-hidden">
-                        <div class="absolute top-0 right-0 p-8 opacity-5">
-                            <i class="fas fa-quote-right text-9xl"></i>
-                        </div>
-                        <div class="flex items-center gap-5">
-                            <div class="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-xl text-emerald-500">
-                                <i class="fas fa-scroll"></i>
-                            </div>
-                            <div>
-                                <h3 id="finalTitle" class="text-2xl font-black text-white">---</h3>
-                                <p class="text-[9px] font-mono text-neutral-500 uppercase tracking-widest">Master Production Script</p>
-                            </div>
-                        </div>
-                        <hr class="border-white/5">
-                        <div id="finalScriptDisplay" class="text-neutral-400 leading-relaxed font-mono text-sm max-h-[500px] overflow-y-auto pr-6 custom-scroll whitespace-pre-wrap italic">
-                            <!-- Injected Script -->
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="lg:col-span-4 space-y-6">
-                    <div class="glass-panel p-8 rounded-[2rem]">
-                        <h3 class="text-[10px] font-black uppercase text-neutral-500 mb-6 tracking-widest flex items-center gap-2">
-                            <i class="fas fa-info-circle text-emerald-500"></i> Engine Artifacts
-                        </h3>
-                        <div id="metaContent" class="space-y-4 font-mono text-[10px] text-neutral-400">
-                        </div>
-                    </div>
-                    <div class="glass-panel p-8 rounded-[2rem] bg-emerald-500/[0.02]">
-                        <h3 class="text-[10px] font-black uppercase text-emerald-500 mb-6 tracking-widest flex items-center gap-2">
-                            <i class="fas fa-bullhorn"></i> Distribution Copy
-                        </h3>
-                        <div id="copyContent" class="space-y-5">
-                            <!-- Injected Captions -->
-                        </div>
-                    </div>
-                </div>
+            <div className="relative group">
+              <div className="absolute -inset-1 bg-gradient-to-r from-[#a3e635]/20 to-transparent blur opacity-25 group-hover:opacity-50 transition-opacity"></div>
+              <textarea 
+                value={project.outline}
+                onChange={e => setProject({...project, outline: e.target.value})}
+                className="relative w-full h-[500px] bg-neutral-900/80 border border-neutral-800 p-10 rounded-[3rem] font-mono text-sm leading-relaxed text-neutral-300 focus:border-[#a3e635] outline-none shadow-2xl backdrop-blur-md"
+              />
             </div>
-        </section>
+          </div>
+        )}
 
-    </main>
-
-    <script>
-        /**
-         * ACG INTELLIGENCE ENGINE V4.0
-         * Ported & Adopted from Antonobekasi/ACG Logic
-         */
-        const apiKey = ""; 
-        
-        let currentStep = 1;
-        let project = {
-            engine: "OpenAI GPT-4 Omni",
-            logic: "ACG Framework 4.0",
-            language: "id-ID",
-            topic: "",
-            title: "",
-            hook: "",
-            script: "",
-            captions: []
-        };
-
-        const steps = [
-            { id: 1, name: "Neural Input", icon: "brain" },
-            { id: 2, name: "Strategic Titles", icon: "heading" },
-            { id: 3, name: "Retention Hooks", icon: "anchor" },
-            { id: 4, name: "Production Script", icon: "align-left" },
-            { id: 5, name: "Pre-Flight", icon: "eye" },
-            { id: 6, name: "Data Vault", icon: "rocket" }
-        ];
-
-        function init() {
-            renderStepper();
-        }
-
-        function renderStepper() {
-            const container = document.getElementById('navSteps');
-            if (!container) return;
-            
-            container.classList.remove('hidden');
-            container.classList.add('flex');
-            
-            container.innerHTML = steps.map(s => `
-                <div class="flex items-center gap-2">
-                    <button onclick="goToStep(${s.id})" 
-                            class="text-[9px] font-bold uppercase transition-all flex items-center gap-2 px-2 py-1 rounded
-                                   ${currentStep === s.id ? 'text-emerald-500' : (currentStep > s.id ? 'text-neutral-400' : 'text-neutral-700')}"
-                            ${currentStep < s.id ? 'disabled' : ''}>
-                        <span class="w-5 h-5 rounded-md border flex items-center justify-center ${currentStep === s.id ? 'border-emerald-500/50 bg-emerald-500/10' : 'border-neutral-800'}">
-                            ${s.id}
-                        </span>
-                        ${s.name}
-                    </button>
-                    ${s.id < steps.length ? '<span class="text-neutral-800">/</span>' : ''}
+        {/* STEP 5: SCRIPT */}
+        {step === 5 && (
+          <div className="max-w-6xl mx-auto space-y-8 animate-in slide-in-from-right-10">
+            <div className="flex justify-between items-center">
+               <div className="flex items-center gap-4">
+                  <button onClick={() => setStep(4)} className="p-3 hover:bg-neutral-900 rounded-full transition-colors"><ChevronLeft/></button>
+                  <h2 className="text-3xl font-black text-white italic tracking-tighter uppercase">Final <span className="text-[#a3e635]">Storyboard</span></h2>
+               </div>
+               <button onClick={handleStep5} className="px-10 py-5 bg-[#a3e635] text-black font-black uppercase italic tracking-tighter rounded-2xl flex items-center gap-3 shadow-xl hover:scale-105 active:scale-95 transition-all">
+                 <Video size={20}/> RENDER CINEMA
+               </button>
+            </div>
+            <div className="grid lg:grid-cols-12 gap-8">
+              <div className="lg:col-span-8 bg-neutral-900/60 border border-neutral-800 rounded-[3rem] overflow-hidden shadow-2xl backdrop-blur-md">
+                <div className="bg-black/40 px-8 py-4 border-b border-neutral-800 flex justify-between items-center">
+                  <span className="text-[10px] font-black text-neutral-500 tracking-widest uppercase flex items-center gap-2">
+                    <RefreshCcw size={12}/> AI_GENERATED_SCRIPT.TXT
+                  </span>
                 </div>
-            `).join('');
-        }
-
-        function updateCharCount() {
-            const topic = document.getElementById('topic').value;
-            document.getElementById('charCount').innerText = `${topic.length} / 1000`;
-        }
-
-        function goToStep(s) {
-            if (s > 1 && !project.topic) return;
-            
-            document.querySelectorAll('section').forEach(el => el.classList.add('hidden'));
-            const target = document.getElementById(`step${s}`);
-            if (target) target.classList.remove('hidden');
-            
-            currentStep = s;
-            renderStepper();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
-        function showLoading(show, title = "", msg = "") {
-            const overlay = document.getElementById('loadingOverlay');
-            if (title) document.getElementById('loadingTitle').innerText = title;
-            if (msg) document.getElementById('loadingMsg').innerText = msg;
-            overlay.style.display = show ? 'flex' : 'none';
-        }
-
-        async function aiCall(prompt, system, isJson = true) {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
-            const body = {
-                contents: [{ parts: [{ text: prompt }] }],
-                systemInstruction: { parts: [{ text: system }] },
-                generationConfig: isJson ? { responseMimeType: "application/json" } : {}
-            };
-            
-            let retries = 5;
-            let delay = 1000;
-            
-            while(retries >= 0) {
-                try {
-                    const res = await fetch(url, { method: 'POST', body: JSON.stringify(body) });
-                    const data = await res.json();
-                    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                    
-                    if (isJson) {
-                        return JSON.parse(text.replace(/```json/g, "").replace(/```/g, "").trim());
-                    }
-                    return text;
-                } catch(e) {
-                    if (retries === 0) throw e;
-                    retries--;
-                    await new Promise(r => setTimeout(r, delay));
-                    delay *= 2;
-                }
-            }
-        }
-
-        async function handleStep1() {
-            const topic = document.getElementById('topic').value.trim();
-            if(!topic) return;
-
-            project.topic = topic;
-            project.language = document.getElementById('language').value;
-            
-            showLoading(true, "Neural Analysis", "Deconstructing concept using ACG logic...");
-            
-            try {
-                const res = await aiCall(
-                    `Topic: ${topic}, Lang: ${project.language}`,
-                    "Generate 5 high-CTR titles for a video. Return JSON: { \"titles\": [{ \"text\": string, \"score\": number, \"category\": string }] }"
-                );
-
-                document.getElementById('titlesList').innerHTML = res.titles.map(t => `
-                    <div onclick="handleStep2('${t.text.replace(/'/g, "\\'")}')" class="glass-panel p-6 rounded-2xl cursor-pointer hover:border-emerald-500/50 transition-all flex justify-between items-center group">
-                        <div class="flex items-center gap-5">
-                            <div class="text-xs font-mono text-emerald-500 opacity-40">${t.score}%</div>
-                            <h3 class="text-lg font-bold text-white group-hover:text-emerald-400 transition-colors">${t.text}</h3>
+                <textarea 
+                  value={project.script}
+                  onChange={e => setProject({...project, script: e.target.value})}
+                  className="w-full h-[600px] bg-transparent p-10 font-mono text-sm leading-loose text-neutral-400 outline-none resize-none custom-scrollbar"
+                />
+              </div>
+              <div className="lg:col-span-4 space-y-6">
+                <div className="bg-neutral-900/80 p-8 rounded-[3rem] border border-neutral-800 shadow-xl">
+                  <h4 className="text-xs font-black uppercase text-neutral-500 mb-6 tracking-widest italic flex items-center gap-2">
+                    <Anchor size={14}/> Scene Breakdown
+                  </h4>
+                  <div className="space-y-4 max-h-[480px] overflow-y-auto pr-2 custom-scrollbar">
+                    {project.script.includes('[SCENE') ? (
+                      project.script.split('[SCENE').slice(1).map((s, idx) => (
+                        <div key={idx} className="p-5 bg-black/40 rounded-2xl border-l-4 border-l-[#a3e635] hover:bg-black/60 transition-colors">
+                          <p className="text-[10px] font-black text-neutral-500 mb-2 uppercase">Scene {idx + 1}</p>
+                          <p className="text-xs text-white/80 line-clamp-3 leading-relaxed">
+                            {s.split(']')[1]?.split('\n')[0] || s.split(']')[1]}
+                          </p>
                         </div>
-                        <span class="text-[9px] font-mono text-neutral-600 uppercase border border-white/5 px-2 py-1 rounded">${t.category}</span>
+                      ))
+                    ) : (
+                      <div className="text-center py-10 text-neutral-600 text-xs italic">
+                        Script belum terbagi menjadi scene. Tambahkan [SCENE X] manual jika perlu.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 6: OUTPUT */}
+        {step === 6 && (
+          <div className="max-w-6xl mx-auto animate-in fade-in zoom-in-95 duration-1000">
+            <div className="flex flex-col lg:flex-row gap-12">
+              {/* Media Player Column */}
+              <div className="flex-1 space-y-8">
+                <div className={`relative bg-neutral-900 rounded-[3.5rem] overflow-hidden shadow-[0_40px_100px_rgba(0,0,0,0.8)] border border-neutral-800 group transition-all duration-500 ${project.format.includes("TikTok") ? 'aspect-[9/16] max-w-[420px] mx-auto' : 'aspect-video w-full'}`}>
+                  {project.thumbnail.image ? (
+                    <img src={project.thumbnail.image} className="w-full h-full object-cover opacity-60" alt="Cinematic Background" />
+                  ) : (
+                    <div className="absolute inset-0 bg-gradient-to-br from-neutral-800 to-black flex items-center justify-center">
+                       <ImageIcon className="text-neutral-700 animate-pulse" size={64}/>
                     </div>
-                `).join('');
-                
-                goToStep(2);
-            } catch(e) {
-                console.error(e);
-            } finally {
-                showLoading(false);
-            }
-        }
-
-        async function handleStep2(title) {
-            project.title = title;
-            showLoading(true, "Hook Synthesis", "Crafting psychological entry points...");
-            
-            try {
-                const res = await aiCall(
-                    `Title: ${title}`,
-                    "Generate 3 powerful hooks based on retention psychology. Return JSON: { \"hooks\": [{ \"text\": string, \"trigger\": string }] }"
-                );
-
-                document.getElementById('hooksList').innerHTML = res.hooks.map(h => `
-                    <div onclick="handleStep3('${h.text.replace(/'/g, "\\'")}')" class="glass-panel p-8 rounded-[2rem] cursor-pointer hover:bg-emerald-500/5 transition-all group flex flex-col justify-between">
-                        <p class="text-white font-semibold leading-relaxed mb-6 group-hover:text-emerald-400 transition-colors italic">"${h.text}"</p>
-                        <div class="text-[8px] font-mono text-neutral-600 uppercase tracking-widest bg-black/40 p-2 rounded-lg border border-white/5">Trigger: ${h.trigger}</div>
+                  )}
+                  
+                  {/* Visual Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/40 flex flex-col justify-between p-12">
+                    <div className="flex justify-between items-start">
+                      <div className="bg-[#a3e635] text-black px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] italic shadow-lg">AI CINEMA HDR</div>
+                      <div className="text-[10px] font-black text-white/40 tracking-widest">{project.format.toUpperCase()}</div>
                     </div>
-                `).join('');
-                
-                goToStep(3);
-            } catch(e) {
-                console.error(e);
-            } finally {
-                showLoading(false);
-            }
-        }
 
-        async function handleStep3(hook) {
-            project.hook = hook;
-            showLoading(true, "NLE Scripting", "Generating full narrative structure...");
-            
-            try {
-                const res = await aiCall(
-                    `Title: ${project.title}, Hook: ${hook}, Lang: ${project.language}`,
-                    "Write a professional video script. Use ACG efficient logic. Include visual cues like [Visual: ...]. Return JSON: { \"script\": string }"
-                );
-
-                document.getElementById('scriptArea').value = res.script;
-                goToStep(4);
-            } catch(e) {
-                console.error(e);
-            } finally {
-                showLoading(false);
-            }
-        }
-
-        function handleStep4() {
-            project.script = document.getElementById('scriptArea').value;
-            document.getElementById('previewTitle').innerText = project.title;
-            goToStep(5);
-        }
-
-        async function finalizeProject() {
-            showLoading(true, "Deploying", "Compiling artifacts for data vault...");
-            
-            try {
-                const res = await aiCall(
-                    `Video Title: ${project.title}`,
-                    "Generate 3 social media captions (IG, TikTok, YouTube). Return JSON: { \"captions\": [{ \"platform\": string, \"content\": string }] }"
-                );
-                
-                project.captions = res.captions;
-                
-                document.getElementById('finalTitle').innerText = project.title;
-                document.getElementById('finalScriptDisplay').innerText = project.script;
-                
-                document.getElementById('metaContent').innerHTML = `
-                    <div class="flex justify-between border-b border-white/5 pb-2"><span>Engine:</span><span class="text-emerald-500">ACG-V4</span></div>
-                    <div class="flex justify-between border-b border-white/5 pb-2"><span>API:</span><span class="text-white">OpenAI Connect</span></div>
-                    <div class="flex justify-between border-b border-white/5 pb-2"><span>Language:</span><span class="text-white uppercase">${project.language}</span></div>
-                    <div class="flex justify-between"><span>Timestamp:</span><span class="text-neutral-600 italic">${new Date().toLocaleTimeString()}</span></div>
-                `;
-
-                document.getElementById('copyContent').innerHTML = res.captions.map(c => `
-                    <div class="space-y-2">
-                        <div class="flex justify-between items-center">
-                            <span class="text-[8px] font-bold text-white/40 uppercase tracking-widest">${c.platform}</span>
-                            <button onclick="copyText(\`${c.content.replace(/`/g, "\\`")}\`)" class="text-[7px] bg-emerald-500/10 text-emerald-400 px-2 py-1 rounded hover:bg-emerald-500/20 transition-colors uppercase">Copy</button>
+                    <div className="space-y-6">
+                      <h3 className="text-4xl md:text-5xl font-black text-white italic tracking-tighter leading-none max-w-lg drop-shadow-2xl">
+                        {project.selectedTitle}
+                      </h3>
+                      <div className="flex items-center gap-4">
+                        <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden backdrop-blur-sm">
+                          <div 
+                            className={`h-full bg-[#a3e635] transition-all duration-300 ${isPlaying ? 'w-full' : 'w-0'}`} 
+                            style={{ transitionDuration: isPlaying ? '30s' : '0.5s' }}
+                          />
                         </div>
-                        <p class="text-[10px] font-mono text-neutral-400 bg-black/20 p-3 rounded-xl border border-white/5 leading-relaxed">${c.content}</p>
+                        <span className="text-[10px] font-mono text-white/50">4K RENDER</span>
+                      </div>
                     </div>
-                `).join('');
+                  </div>
 
-                goToStep(6);
-            } catch(e) {
-                console.error(e);
-            } finally {
-                showLoading(false);
-            }
-        }
+                  {/* Play/Pause Button */}
+                  <button 
+                    onClick={togglePlayback}
+                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-28 bg-[#a3e635] rounded-full flex items-center justify-center text-black shadow-[0_0_50px_rgba(163,230,53,0.5)] hover:scale-110 active:scale-90 transition-all z-50 group-hover:bg-white"
+                  >
+                    {isPlaying ? <RefreshCcw className="animate-spin" size={32} /> : <Play fill="currentColor" size={32} className="ml-2" />}
+                  </button>
+                  
+                  {audioUrl && (
+                    <audio 
+                      ref={audioRef} 
+                      src={audioUrl} 
+                      onEnded={() => setIsPlaying(false)} 
+                      onPlay={() => setIsPlaying(true)}
+                      onPause={() => setIsPlaying(false)}
+                    />
+                  )}
+                </div>
 
-        function copyText(text) {
-            const el = document.createElement('textarea');
-            el.value = text;
-            document.body.appendChild(el);
-            el.select();
-            document.execCommand('copy');
-            document.body.removeChild(el);
-        }
+                <div className="grid grid-cols-3 gap-6">
+                  <button className="bg-neutral-900/80 p-6 rounded-3xl border border-neutral-800 hover:border-[#a3e635] hover:bg-[#a3e635]/5 transition-all flex flex-col items-center gap-3 group">
+                    <Download size={24} className="text-[#a3e635] group-hover:-translate-y-1 transition-transform" />
+                    <span className="text-[9px] font-black uppercase tracking-[0.2em]">EXPORT MP4</span>
+                  </button>
+                  <button className="bg-neutral-900/80 p-6 rounded-3xl border border-neutral-800 hover:border-[#a3e635] hover:bg-[#a3e635]/5 transition-all flex flex-col items-center gap-3 group">
+                    <Volume2 size={24} className="text-[#a3e635] group-hover:-translate-y-1 transition-transform" />
+                    <span className="text-[9px] font-black uppercase tracking-[0.2em]">MASTER WAV</span>
+                  </button>
+                  <button className="bg-neutral-900/80 p-6 rounded-3xl border border-neutral-800 hover:border-[#a3e635] hover:bg-[#a3e635]/5 transition-all flex flex-col items-center gap-3 group">
+                    <Share2 size={24} className="text-[#a3e635] group-hover:-translate-y-1 transition-transform" />
+                    <span className="text-[9px] font-black uppercase tracking-[0.2em]">SHARE PROJECT</span>
+                  </button>
+                </div>
+              </div>
 
-        function downloadProject() {
-            const blob = new Blob([JSON.stringify(project, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `ACG_PROJECT_${Date.now()}.json`;
-            a.click();
-        }
+              {/* Side Meta Column */}
+              <div className="w-full lg:w-96 space-y-6">
+                <div className="bg-neutral-900 p-10 rounded-[3rem] border border-neutral-800 shadow-2xl backdrop-blur-md">
+                  <h4 className="text-xs font-black text-white uppercase italic tracking-widest mb-8 border-b border-white/5 pb-4">Neural Logs</h4>
+                  <div className="space-y-8">
+                    <div>
+                      <label className="text-[9px] font-black text-neutral-500 uppercase tracking-widest block mb-3">AI Narrator</label>
+                      <div className="bg-black/50 p-4 rounded-2xl text-[11px] font-mono text-[#a3e635] flex items-center gap-3">
+                         <div className="w-2 h-2 rounded-full bg-[#a3e635] animate-ping"/> {project.tone} / Puck (Voice)
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[9px] font-black text-neutral-500 uppercase tracking-widest block mb-3">Visual Blueprint</label>
+                      <div className="bg-black/50 p-5 rounded-2xl text-[10px] font-mono text-neutral-500 italic leading-loose">
+                        "{project.thumbnail.visualPrompt}"
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[9px] font-black text-neutral-500 uppercase tracking-widest block mb-3">Estimated Reach</label>
+                      <div className="bg-black/50 p-4 rounded-2xl text-[11px] font-mono text-white">Potensial: High Retention</div>
+                    </div>
+                  </div>
+                </div>
 
-        window.onload = init;
-    </script>
-</body>
-</html>
+                <button 
+                  onClick={() => window.location.reload()}
+                  className="w-full py-6 bg-white/5 border border-white/10 rounded-[2rem] text-xs font-black uppercase tracking-[0.3em] hover:bg-white/10 transition-all flex items-center justify-center gap-3"
+                >
+                  <RefreshCcw size={16}/> New Production
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+      </main>
+
+      {/* OVERLAY LOADING */}
+      {loading && (
+        <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-3xl flex flex-col items-center justify-center text-center p-6 animate-in fade-in">
+          <div className="relative mb-10 scale-150">
+            <div className="absolute inset-0 bg-[#a3e635]/20 blur-[60px] animate-pulse rounded-full" />
+            <Loader2 className="animate-spin text-[#a3e635] relative z-10" size={60} />
+          </div>
+          <h2 className="text-4xl font-black text-white uppercase italic tracking-tighter mb-3">Synching Neural Data</h2>
+          <p className="text-[#a3e635] font-mono text-[10px] uppercase tracking-[0.6em] animate-pulse">{loadingMsg}</p>
+          <div className="mt-12 flex gap-1">
+             {[1,2,3,4,5].map(i => <div key={i} className="w-1.5 h-1.5 rounded-full bg-[#a3e635] animate-bounce" style={{animationDelay: `${i*0.1}s`}}/>)}
+          </div>
+        </div>
+      )}
+
+      {/* ERROR MODAL */}
+      {error && (
+        <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-[110] bg-red-900/10 border border-red-500/40 p-6 pr-14 rounded-3xl backdrop-blur-2xl flex items-center gap-4 animate-in slide-in-from-bottom-5">
+          <div className="bg-red-500 p-2 rounded-xl text-black">
+            <AlertCircle size={20} />
+          </div>
+          <div className="text-left">
+            <p className="text-[10px] font-black text-red-500 uppercase tracking-widest">Neural Breakdown</p>
+            <p className="text-sm font-bold text-red-100">{error}</p>
+          </div>
+          <button 
+            onClick={() => setError(null)} 
+            className="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-red-500 hover:text-white transition-colors"
+          >✕</button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default App;
