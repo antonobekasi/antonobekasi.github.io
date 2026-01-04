@@ -107,7 +107,7 @@
         ];
 
         const App = () => {
-            const apiKey = ""; 
+            const apiKey = ""; // API Key dikelola oleh sistem runtime
             const [currentStep, setCurrentStep] = useState(1);
             const [loading, setLoading] = useState(false);
             const [loadingMsg, setLoadingMsg] = useState("");
@@ -173,7 +173,9 @@
                 const payload = {
                     contents: [{ parts: [{ text: prompt }] }],
                     systemInstruction: { parts: [{ text: systemPrompt }] },
-                    generationConfig: { responseMimeType: "application/json" }
+                    generationConfig: { 
+                        responseMimeType: "application/json" 
+                    }
                 };
 
                 let delay = 1000;
@@ -184,11 +186,24 @@
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(payload)
                         });
-                        if (!response.ok) throw new Error("Gagal menghubungi AI");
+                        
+                        if (!response.ok) {
+                            const errorData = await response.json();
+                            throw new Error(errorData.error?.message || "Gagal menghubungi AI");
+                        }
+                        
                         const result = await response.json();
-                        const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
-                        const cleanJson = text.replace(/```json|```/gi, '').trim();
-                        return JSON.parse(cleanJson);
+                        let text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                        
+                        if (!text) throw new Error("AI tidak memberikan jawaban");
+
+                        // Pembersihan teks JSON yang lebih kuat
+                        text = text.trim();
+                        if (text.startsWith("```json")) text = text.replace(/^```json/, "");
+                        if (text.startsWith("```")) text = text.replace(/^```/, "");
+                        if (text.endsWith("```")) text = text.replace(/```$/, "");
+                        
+                        return JSON.parse(text.trim());
                     } catch (e) {
                         if (i === 4) throw e;
                         await new Promise(r => setTimeout(r, delay));
@@ -199,12 +214,22 @@
 
             const handleStart = async () => {
                 if (!data.topic.trim()) return;
-                setLoading(true); setLoadingMsg("Menganalisis ide..."); setError(null);
+                setLoading(true); 
+                setLoadingMsg("Menganalisis ide..."); 
+                setError(null);
                 try {
                     const res = await callGemini(data.topic, "Berikan 3 judul viral. Format JSON: { \"titles\": [{\"text\": \"Judul\", \"score\": 95}] }");
-                    setData(p => ({ ...p, titles: Array.isArray(res.titles) ? res.titles : [] }));
-                    setCurrentStep(2);
-                } catch (e) { setError("Gagal memproses ide."); } finally { setLoading(false); }
+                    if (res && res.titles) {
+                        setData(p => ({ ...p, titles: res.titles }));
+                        setCurrentStep(2);
+                    } else {
+                        throw new Error("Format data tidak valid");
+                    }
+                } catch (e) { 
+                    setError(`Gagal memproses ide: ${e.message}`); 
+                } finally { 
+                    setLoading(false); 
+                }
             };
 
             const handleTitleSelect = async (t) => {
@@ -213,7 +238,7 @@
                     const res = await callGemini(t, "Berikan 2 hook viral. Format JSON: { \"hooks\": [\"H1\", \"H2\"] }");
                     setData(p => ({ ...p, hooks: Array.isArray(res.hooks) ? res.hooks : [] }));
                     setCurrentStep(3);
-                } catch (e) { setError("Gagal membuat hook."); } finally { setLoading(false); }
+                } catch (e) { setError(`Gagal membuat hook: ${e.message}`); } finally { setLoading(false); }
             };
 
             const handleHookSelect = async (h) => {
@@ -222,7 +247,7 @@
                     const res = await callGemini(`Judul: ${data.selectedTitle}, Hook: ${h}`, "Buat naskah video pendek dan caption Instagram. Format JSON: { \"script\": \"...\", \"caption\": \"...\" }");
                     setData(p => ({ ...p, script: res.script, caption: res.caption }));
                     setCurrentStep(4);
-                } catch (e) { setError("Gagal menyusun naskah."); } finally { setLoading(false); }
+                } catch (e) { setError(`Gagal menyusun naskah: ${e.message}`); } finally { setLoading(false); }
             };
 
             const handleGoToPrompt = async () => {
@@ -231,13 +256,12 @@
                     const res = await callGemini(data.script, "Berdasarkan naskah ini, buat 3 prompt detail untuk AI Video Generator (Luma/Kling). Berikan prompt dalam bahasa Inggris yang mendeskripsikan gerakan kamera dan detail sinematik. Format JSON: { \"imagePrompts\": [{\"scene\": \"Deskripsi Scene\", \"prompt\": \"Cinematic English Prompt with camera movements\"}] }");
                     setData(p => ({ ...p, imagePrompts: Array.isArray(res.imagePrompts) ? res.imagePrompts : [] }));
                     setCurrentStep(5);
-                } catch (e) { setError("Gagal membuat prompt visual."); } finally { setLoading(false); }
+                } catch (e) { setError(`Gagal membuat prompt visual: ${e.message}`); } finally { setLoading(false); }
             };
 
             const generateVideo = (prompt) => {
                 copyToClipboard(prompt);
                 speakGuide("Prompt disalin. Membuka Luma Dream Machine.");
-                // Membuka Luma Dream Machine atau Kling AI di tab baru
                 window.open("https://lumalabs.ai/dream-machine", "_blank");
             };
 
@@ -288,7 +312,13 @@
                     </div>
 
                     <main className="instant-fade min-h-[400px]">
-                        {error && <div className="mb-8 p-5 bg-red-500/10 border border-red-500/30 rounded-3xl text-red-400 text-sm flex items-center gap-3"><Icon name="alert-circle" size={18}/> {error}</div>}
+                        {error && (
+                            <div className="mb-8 p-5 bg-red-500/10 border border-red-500/30 rounded-3xl text-red-400 text-sm flex items-center gap-3">
+                                <Icon name="alert-circle" size={18}/> 
+                                <span className="flex-1">{error}</span>
+                                <button onClick={() => setError(null)} className="hover:text-white">&times;</button>
+                            </div>
+                        )}
 
                         {currentStep === 1 && (
                             <div className="glass p-10 rounded-[3rem] border-indigo-500/20 shadow-2xl">
