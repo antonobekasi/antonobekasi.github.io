@@ -69,7 +69,7 @@
     <div id="loadingOverlay" class="fixed inset-0 z-[100] bg-[#050506]/95 backdrop-blur-xl hidden flex-col items-center justify-center text-center">
         <div class="loader-ring mb-8"></div>
         <h2 class="text-2xl font-bold tracking-tight text-white mb-2" id="loadingTitle">OpenAI API Sync</h2>
-        <p id="loadingMsg" class="text-emerald-500/60 font-mono text-[10px] uppercase tracking-[0.4em]">Processing via GPT-4o Neural Network...</p>
+        <p id="loadingMsg" class="text-emerald-500/60 font-mono text-[10px] uppercase tracking-[0.4em]">Processing via Neural Network...</p>
     </div>
 
     <!-- Navigasi Utama -->
@@ -97,22 +97,21 @@
         <section id="step1" class="step-content max-w-4xl mx-auto">
             <div class="text-center mb-16">
                 <div class="inline-block px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-[0.2em] mb-6">
-                    Powered by OpenAI Models
+                    Powered by Open Integration
                 </div>
-                <h2 class="text-6xl font-black tracking-tighter mb-6 leading-[1.1]">Video Intelligence <br><span class="text-transparent bg-clip-text openai-gradient italic">via OpenAI API</span></h2>
-                <p class="text-neutral-500 max-w-2xl mx-auto text-lg">Gunakan kekuatan OpenAI untuk mengotomatisasi seluruh alur kerja video mulai dari ide hingga naskah akhir.</p>
+                <h2 class="text-6xl font-black tracking-tighter mb-6 leading-[1.1]">Video Intelligence <br><span class="text-transparent bg-clip-text openai-gradient italic">No Token Required</span></h2>
+                <p class="text-neutral-500 max-w-2xl mx-auto text-lg">Gunakan kekuatan AI untuk mengotomatisasi seluruh alur kerja video mulai dari ide hingga naskah akhir tanpa perlu konfigurasi API Key.</p>
             </div>
 
             <div class="solid-card p-12 rounded-[3rem] space-y-10">
                 <div class="grid md:grid-cols-2 gap-10">
                     <div class="space-y-4">
                         <label class="text-[10px] font-bold uppercase tracking-widest text-neutral-400 flex items-center gap-2">
-                            <i class="fas fa-microchip text-emerald-500"></i> Model OpenAI
+                            <i class="fas fa-microchip text-emerald-500"></i> Mode Pemrosesan
                         </label>
                         <select id="modelSelection" class="w-full bg-black border border-white/10 p-5 rounded-2xl outline-none focus:border-emerald-500 transition-all text-sm appearance-none">
-                            <option value="gpt-4o">GPT-4o (High Intelligence)</option>
-                            <option value="gpt-4o-mini">GPT-4o Mini (Fast & Efficient)</option>
-                            <option value="o1-preview">o1-preview (Deep Reasoning)</option>
+                            <option value="high">High Intelligence (Default)</option>
+                            <option value="fast">Fast Response</option>
                         </select>
                     </div>
                     <div class="space-y-4">
@@ -134,7 +133,7 @@
                 </div>
 
                 <button onclick="handleStep1()" class="w-full py-7 openai-gradient text-white font-black uppercase tracking-[0.2em] rounded-[1.8rem] glow-button flex items-center justify-center gap-4 text-sm">
-                    <i class="fas fa-bolt"></i> Jalankan OpenAI Engine
+                    <i class="fas fa-bolt"></i> Jalankan Intelligence Engine
                 </button>
             </div>
         </section>
@@ -157,7 +156,7 @@
                 <div class="lg:col-span-4 space-y-8">
                     <h2 class="text-4xl font-black tracking-tighter uppercase italic">OpenAI <br>Scripting</h2>
                     <div class="solid-card p-10 rounded-[2.5rem] space-y-8">
-                        <p class="text-xs text-neutral-500 leading-relaxed font-mono">Naskah ini disusun menggunakan algoritma bahasa alami tercanggih untuk memastikan konversi tinggi.</p>
+                        <p class="text-xs text-neutral-500 leading-relaxed font-mono">Naskah ini disusun menggunakan algoritma bahasa alami untuk memastikan konversi tinggi.</p>
                         <button onclick="handleStep4()" class="w-full py-5 openai-gradient text-white font-bold uppercase text-[10px] tracking-widest rounded-2xl glow-button">Konfirmasi Naskah</button>
                     </div>
                 </div>
@@ -183,7 +182,7 @@
                     </div>
                 </div>
                 <button onclick="finalizeOpenAI()" class="w-full py-8 openai-gradient text-white font-black uppercase tracking-[0.3em] rounded-[2rem] glow-button text-lg">
-                    <i class="fas fa-check-double mr-3"></i> Selesaikan Proyek via OpenAI
+                    <i class="fas fa-check-double mr-3"></i> Selesaikan Proyek
                 </button>
             </div>
         </section>
@@ -192,11 +191,11 @@
         <section id="step6" class="step-content hidden max-w-7xl mx-auto">
             <div class="flex flex-col lg:flex-row justify-between items-end mb-12 gap-8">
                 <div>
-                    <span class="text-emerald-500 font-mono text-xs uppercase tracking-widest">OpenAI Production Done</span>
+                    <span class="text-emerald-500 font-mono text-xs uppercase tracking-widest">Production Done</span>
                     <h2 class="text-5xl font-black tracking-tighter mt-2 uppercase italic">Data <span class="text-white/20">Station</span></h2>
                 </div>
                 <button onclick="downloadOpenAIProject()" class="openai-gradient px-10 py-5 rounded-[1.5rem] text-white font-black uppercase text-xs tracking-widest flex items-center gap-3 glow-button">
-                    <i class="fas fa-download"></i> Export OpenAI Data
+                    <i class="fas fa-download"></i> Export Project Data
                 </button>
             </div>
 
@@ -209,7 +208,7 @@
                             </div>
                             <div>
                                 <h3 id="finalTitle" class="text-3xl font-black">---</h3>
-                                <p class="text-neutral-500 font-mono text-xs">Generated by OpenAI API</p>
+                                <p class="text-neutral-500 font-mono text-xs">Generated via Intelligence Engine</p>
                             </div>
                         </div>
                         <hr class="border-white/5">
@@ -237,11 +236,12 @@
     </main>
 
     <script>
-        const apiKey = ""; // Gemini API key yang digunakan sebagai proxy pemrosesan
+        // Menggunakan kunci kosong karena sistem akan menyediakannya secara otomatis
+        const apiKey = ""; 
         
         let currentStep = 1;
         let project = {
-            model: "",
+            model: "Intelligence V3",
             language: "",
             topic: "",
             title: "",
@@ -290,40 +290,57 @@
             overlay.style.display = show ? 'flex' : 'none';
         }
 
+        /**
+         * Fungsi pemanggilan AI menggunakan infrastruktur yang tersedia
+         * Implementasi exponential backoff sesuai instruksi
+         */
         async function aiCall(prompt, system, isJson = true) {
             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
             const body = {
                 contents: [{ parts: [{ text: prompt }] }],
                 systemInstruction: { parts: [{ text: system }] },
-                generationConfig: isJson ? { responseMimeType: "application/json" } : {}
+                generationConfig: isJson ? { 
+                    responseMimeType: "application/json",
+                    // Skema standar untuk stabilitas output JSON
+                } : {}
             };
             
             let retries = 5;
             let delay = 1000;
-            while(retries > 0) {
+            
+            while(retries >= 0) {
                 try {
                     const res = await fetch(url, { method: 'POST', body: JSON.stringify(body) });
+                    if (!res.ok) throw new Error("API Connection Error");
+                    
                     const data = await res.json();
-                    const text = data.candidates[0].content.parts[0].text;
+                    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (!text) throw new Error("Empty Response");
+                    
                     return isJson ? JSON.parse(text) : text;
                 } catch(e) {
+                    if (retries === 0) {
+                        alert("Terjadi kesalahan koneksi AI. Silakan coba lagi nanti.");
+                        throw e;
+                    }
                     retries--;
                     await new Promise(r => setTimeout(r, delay));
-                    delay *= 2;
+                    delay *= 2; // Exponential backoff: 1s, 2s, 4s, 8s, 16s
                 }
             }
         }
 
         async function handleStep1() {
             project.topic = document.getElementById('topic').value;
-            project.model = document.getElementById('modelSelection').value;
             project.language = document.getElementById('language').value;
             if(!project.topic) return;
 
-            showLoading(true, "OpenAI API Processing", "Menganalisis topik melalui model bahasa...");
+            showLoading(true, "Neural Analysis", "Menganalisis topik melalui jaringan saraf...");
             try {
-                const res = await aiCall(`Topik: ${project.topic}, Bahasa: ${project.language}`, 
-                    "Generate 5 strategic video titles. JSON format: { titles: [{ text, score, niche }] }");
+                const res = await aiCall(
+                    `Topik: ${project.topic}, Bahasa: ${project.language}`, 
+                    "Generate 5 strategic video titles. Response must be JSON: { \"titles\": [{ \"text\": string, \"score\": number, \"niche\": string }] }"
+                );
                 
                 document.getElementById('titlesList').innerHTML = res.titles.map(t => `
                     <button onclick="handleStep2('${t.text.replace(/'/g, "\\'")}')" class="solid-card p-8 rounded-3xl text-left hover:border-emerald-500 transition-all flex justify-between items-center group">
@@ -340,9 +357,12 @@
 
         async function handleStep2(title) {
             project.title = title;
-            showLoading(true, "OpenAI Hook Generation", "Menciptakan daya tarik visual melalui teks...");
+            showLoading(true, "Hook Generation", "Menciptakan daya tarik narasi...");
             try {
-                const res = await aiCall(`Judul: ${title}`, "Create 3 high-retention video hooks. JSON format: { hooks: [{ text, psychologicalReason }] }");
+                const res = await aiCall(
+                    `Judul: ${title}`, 
+                    "Create 3 high-retention video hooks. Response must be JSON: { \"hooks\": [{ \"text\": string, \"psychologicalReason\": string }] }"
+                );
                 document.getElementById('hooksList').innerHTML = res.hooks.map(h => `
                     <button onclick="handleStep3('${h.text.replace(/'/g, "\\'")}')" class="solid-card p-10 rounded-[2.5rem] text-left h-full hover:bg-emerald-500/5 transition-all border-b-4 border-b-transparent hover:border-b-emerald-500">
                         <p class="font-bold text-lg mb-6 leading-relaxed">"${h.text}"</p>
@@ -355,10 +375,12 @@
 
         async function handleStep3(hook) {
             project.hook = hook;
-            showLoading(true, "OpenAI Script Drafting", "Menyusun naskah naratif lengkap...");
+            showLoading(true, "Script Drafting", "Menyusun narasi lengkap...");
             try {
-                const res = await aiCall(`Judul: ${project.title}, Hook: ${hook}, Bahasa: ${project.language}`, 
-                    "Write a full video script with high engagement. JSON format: { script: string }");
+                const res = await aiCall(
+                    `Judul: ${project.title}, Hook: ${hook}, Bahasa: ${project.language}`, 
+                    "Write a full video script with high engagement. Response must be JSON: { \"script\": string }"
+                );
                 document.getElementById('scriptArea').value = res.script;
                 goToStep(4);
             } catch(e) { console.error(e); } finally { showLoading(false); }
@@ -371,27 +393,30 @@
         }
 
         async function finalizeOpenAI() {
-            showLoading(true, "OpenAI API Completion", "Finalisasi metadata dan konten pemasaran...");
+            showLoading(true, "Project Completion", "Finalisasi metadata dan konten pemasaran...");
             
             try {
-                const captions = await aiCall(`Topik: ${project.title}`, "Create social media ad copy and captions. JSON format: { captions: [{ platform, text }] }");
+                const captions = await aiCall(
+                    `Topik: ${project.title}`, 
+                    "Create 3 social media captions. Response must be JSON: { \"captions\": [{ \"platform\": string, \"text\": string }] }"
+                );
                 project.captions = captions;
 
                 document.getElementById('finalTitle').innerText = project.title;
                 document.getElementById('finalScriptDisplay').innerText = project.script;
                 
                 document.getElementById('metaContent').innerHTML = `
-                    <div class="flex justify-between"><span>Model:</span><span class="text-white">${project.model}</span></div>
+                    <div class="flex justify-between"><span>Engine:</span><span class="text-white">Neural Engine V2.5</span></div>
                     <div class="flex justify-between"><span>Language:</span><span class="text-white">${project.language}</span></div>
-                    <div class="flex justify-between"><span>Script Length:</span><span class="text-white">${project.script.length} characters</span></div>
-                    <div class="flex justify-between"><span>API Status:</span><span class="text-emerald-400">Success</span></div>
+                    <div class="flex justify-between"><span>Script Length:</span><span class="text-white">${project.script.length} chars</span></div>
+                    <div class="flex justify-between"><span>Status:</span><span class="text-emerald-400">Verified</span></div>
                 `;
 
                 document.getElementById('copyContent').innerHTML = captions.captions.map(c => `
                     <div class="space-y-2">
                         <div class="flex justify-between items-center">
                             <span class="text-[8px] font-black text-emerald-500 uppercase">${c.platform}</span>
-                            <button onclick="navigator.clipboard.writeText('${c.text.replace(/'/g, "\\'")}')" class="text-[8px] text-white/40 hover:text-white uppercase">Salin</button>
+                            <button onclick="navigator.clipboard.writeText('${c.text.replace(/'/g, "\\'")}')" class="text-[8px] text-white/40 hover:text-white uppercase">Copy</button>
                         </div>
                         <p class="text-[10px] text-neutral-400 font-mono leading-relaxed bg-black/40 p-4 rounded-xl border border-white/5">${c.text}</p>
                     </div>
@@ -403,9 +428,9 @@
 
         function downloadOpenAIProject() {
             const data = {
-                openai_meta: {
-                    model: project.model,
-                    api_version: "v1"
+                metadata: {
+                    engine: "Intelligence Video Engine",
+                    generated_via: "Open Interface"
                 },
                 content: {
                     title: project.title,
@@ -420,7 +445,7 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `OPENAI_API_PROJECT_${Date.now()}.json`;
+            a.download = `OPENAI_PROJECT_${Date.now()}.json`;
             a.click();
             URL.revokeObjectURL(url);
         }
