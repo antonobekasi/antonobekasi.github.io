@@ -65,8 +65,8 @@
     <script type="text/babel">
         const { useState, useEffect, useCallback } = React;
 
-        // Menggunakan API Key dari Google AI Studio yang diberikan
-        const apiKey = "AIzaSyD2XUuQiu8JOkdndi3XFhkGlKH-2MoHhw8"; 
+        // API Key dari Google AI Studio
+        const apiKey = "AIzaSyD-_JKSDGOsTsgsyfaAhWBzD9BbqtRaZTc"; 
 
         const Icon = ({ name, className = "w-5 h-5" }) => {
             const icons = {
@@ -75,7 +75,8 @@
                 zap: <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8Z" />,
                 code: <path d="m18 16 4-4-4-4M6 8l-4 4 4 4M14.5 4l-5 16" />,
                 eye: <><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></>,
-                download: <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+                download: <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />,
+                info: <><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></>
             };
             return (
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -89,6 +90,7 @@
             const [loading, setLoading] = useState(false);
             const [progress, setProgress] = useState('');
             const [error, setError] = useState(null);
+            const [showModels, setShowModels] = useState(false);
             const [results, setResults] = useState({
                 research: null,
                 titles: [],
@@ -97,6 +99,12 @@
                 thumbnail: null
             });
             const [input, setInput] = useState({ topic: '', niche: 'Technology' });
+
+            const aiModels = [
+                { name: "Gemini 2.5 Flash", role: "Brain Core", task: "Riset, Pembuatan Judul, & Penulisan Naskah", status: "Active" },
+                { name: "Google Search Tool", role: "Data Sync", task: "Riset Tren Real-time 2024-2025", status: "Active" },
+                { name: "Imagen 4.0", role: "Visual Engine", task: "Pembuatan Thumbnail Generative", status: "Ready" }
+            ];
 
             const callAI = async (prompt, system, useSearch = false, isJson = false) => {
                 const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
@@ -225,10 +233,36 @@
                                 <p className="text-[10px] mono uppercase tracking-[0.4em] text-neutral-500">Neural Engine Fixed v6.1</p>
                             </div>
                         </div>
-                        <div className="hidden md:block glass-panel px-6 py-2 rounded-full border-neutral-800">
-                            <span className="text-[10px] mono text-[#CCFF00] animate-pulse">● SYSTEM READY: 09-2025 HYPERDRIVE</span>
+                        <div className="flex gap-2">
+                            <button 
+                                onClick={() => setShowModels(!showModels)}
+                                className="glass-panel px-4 py-2 rounded-full border-neutral-800 flex items-center gap-2 hover:border-[#CCFF00] transition-all"
+                            >
+                                <Icon name="info" className="w-4 h-4 text-[#CCFF00]" />
+                                <span className="text-[10px] mono text-[#CCFF00]">AI STACK</span>
+                            </button>
                         </div>
                     </header>
+
+                    {showModels && (
+                        <div className="w-full max-w-4xl mb-12 animate-in fade-in slide-in-from-top-4 duration-500 relative z-20">
+                            <div className="glass-panel p-6 rounded-[2rem] border-[#CCFF00]/20 bg-black/40">
+                                <h3 className="text-sm font-black italic uppercase mb-4 tracking-widest text-[#CCFF00]">Teknologi AI yang Digunakan:</h3>
+                                <div className="grid md:grid-cols-3 gap-4">
+                                    {aiModels.map((m, i) => (
+                                        <div key={i} className="p-4 bg-white/5 rounded-xl border border-white/5 space-y-2">
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-xs font-bold text-white uppercase">{m.name}</span>
+                                                <span className="text-[8px] mono px-2 py-0.5 bg-[#CCFF00]/10 text-[#CCFF00] rounded-full border border-[#CCFF00]/20">{m.status}</span>
+                                            </div>
+                                            <p className="text-[10px] mono text-neutral-500 uppercase">{m.role}</p>
+                                            <p className="text-[10px] text-neutral-400 leading-tight">{m.task}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     <main className="w-full max-w-4xl relative z-10">
                         {error && (
