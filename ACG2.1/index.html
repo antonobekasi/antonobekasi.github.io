@@ -148,6 +148,7 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
+        // API Key is handled by the execution environment at runtime if empty
         const apiKey = "";
 
         const Icon = ({ name, size = 20, className = "" }) => {
@@ -214,12 +215,22 @@
 
                         if (!res.ok) {
                             const errorBody = await res.json().catch(() => ({}));
-                            throw new Error(errorBody.error?.message || `HTTP error! status: ${res.status}`);
+                            // Check for common error types
+                            if (res.status === 401) throw new Error("API Key tidak valid atau belum diatur.");
+                            if (res.status === 429) throw new Error("Terlalu banyak permintaan (Rate limit). Silakan tunggu sebentar.");
+                            throw new Error(errorBody.error?.message || `Terjadi kesalahan API (Status: ${res.status})`);
                         }
 
                         return isBlob ? await res.blob() : await res.json();
                     } catch (err) {
-                        if (i === retryDelays.length) throw err;
+                        // If it's a network error (Failed to fetch) or we ran out of retries
+                        if (err.name === 'TypeError' && err.message === 'Failed to fetch') {
+                            if (i === retryDelays.length) throw new Error("Gagal terhubung ke server OpenAI. Periksa koneksi internet atau API Key Anda.");
+                        } else if (i === retryDelays.length) {
+                            throw err;
+                        }
+                        
+                        // Exponential backoff
                         await new Promise(r => setTimeout(r, retryDelays[i]));
                     }
                 }
@@ -245,7 +256,8 @@
                     setCurrentStep(2);
                     setAiMessage("Pilih judul yang paling 'nendang' untuk audiensmu!");
                 } catch (e) {
-                    setAiMessage(`Error: ${e.message}`);
+                    setAiMessage(`Kesalahan: ${e.message}`);
+                    console.error("OpenAI Error:", e);
                 } finally {
                     setLoading(false);
                     setIsThinking(false);
@@ -272,7 +284,7 @@
                     setCurrentStep(3);
                     setAiMessage("Skrip sudah siap! Mari tambahkan visual dan audio.");
                 } catch (e) {
-                    setAiMessage(`Error: ${e.message}`);
+                    setAiMessage(`Gagal membuat skrip: ${e.message}`);
                 } finally {
                     setLoading(false);
                     setIsThinking(false);
@@ -293,7 +305,7 @@
                     setContentData(prev => ({ ...prev, generatedImage: res.data[0].url }));
                     setAiMessage("Visualisasi berhasil dibuat!");
                 } catch (e) {
-                    setAiMessage(`Gagal: ${e.message}`);
+                    setAiMessage(`Gagal visual: ${e.message}`);
                 } finally {
                     setContentData(prev => ({ ...prev, isGeneratingVideo: false }));
                 }
@@ -313,7 +325,7 @@
                     setContentData(prev => ({ ...prev, generatedAudio: audioUrl }));
                     setAiMessage("Audio narasi siap diputar!");
                 } catch (e) {
-                    setAiMessage(`Gagal: ${e.message}`);
+                    setAiMessage(`Gagal audio: ${e.message}`);
                 } finally {
                     setContentData(prev => ({ ...prev, isGeneratingAudio: false }));
                 }
