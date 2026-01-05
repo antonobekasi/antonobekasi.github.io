@@ -3,10 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ACG v6.5 - Studio Edition</title>
-    <!-- Tailwind CSS CDN -->
+    <title>ACG v6.5 - OpenAI Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- React & Babel CDN -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -14,8 +12,7 @@
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
         
         :root {
-            --accent: #007AFF;
-            --accent-soft: rgba(0, 122, 255, 0.1);
+            --accent: #10a37f;
             --bg-light: #F8F9FC;
             --card-light: rgba(255, 255, 255, 0.7);
             --text-light: #1A1C1E;
@@ -45,13 +42,13 @@
             transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
-        .btn-gradient {
-            background: linear-gradient(135deg, #007AFF 0%, #00C6FF 100%);
-            box-shadow: 0 10px 25px -5px rgba(0, 122, 255, 0.3);
+        .btn-openai {
+            background: linear-gradient(135deg, #10a37f 0%, #007858 100%);
+            box-shadow: 0 10px 25px -5px rgba(16, 163, 127, 0.3);
         }
 
         .shimmer-text {
-            background: linear-gradient(90deg, var(--text-light) 0%, #007AFF 50%, var(--text-light) 100%);
+            background: linear-gradient(90deg, var(--text-light) 0%, #10a37f 50%, var(--text-light) 100%);
             background-size: 200% auto;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -72,61 +69,24 @@
             border-color: rgba(255, 255, 255, 0.05);
         }
 
-        /* Top Right Assistant Dock */
         .assistant-top-dock {
             position: fixed;
             top: 24px;
             right: 24px;
             width: 380px;
             z-index: 1000;
-            transition: all 0.6s cubic-bezier(0.19, 1, 0.22, 1);
         }
 
-        .assistant-top-dock.minimized {
-            top: -120px;
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        /* Realistic AI Sphere */
         .ai-orb {
             width: 48px;
             height: 48px;
-            background: radial-gradient(circle at 30% 30%, #4facfe 0%, #00f2fe 100%);
+            background: radial-gradient(circle at 30% 30%, #10a37f 0%, #054a3a 100%);
             border-radius: 50%;
             position: relative;
-            box-shadow: 0 0 20px rgba(0, 242, 254, 0.4), inset -3px -3px 10px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 0 20px rgba(16, 163, 127, 0.4);
             overflow: hidden;
-            flex-shrink: 0;
         }
 
-        .ai-orb::after {
-            content: '';
-            position: absolute;
-            top: 15%;
-            left: 15%;
-            width: 30%;
-            height: 30%;
-            background: rgba(255, 255, 255, 0.4);
-            border-radius: 50%;
-            filter: blur(2px);
-        }
-
-        .ai-pulse-ring {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            border: 2px solid #00f2fe;
-            animation: ring-pulse 2s infinite;
-        }
-
-        @keyframes ring-pulse {
-            0% { transform: scale(1); opacity: 0.8; }
-            100% { transform: scale(1.6); opacity: 0; }
-        }
-
-        /* Sound Waves Visualizer */
         .visualizer {
             display: flex;
             align-items: center;
@@ -136,7 +96,7 @@
 
         .bar {
             width: 2px;
-            background: #007AFF;
+            background: #10a37f;
             border-radius: 4px;
             animation: bar-dance 0.8s ease-in-out infinite;
         }
@@ -144,31 +104,6 @@
         @keyframes bar-dance {
             0%, 100% { height: 4px; opacity: 0.5; }
             50% { height: 12px; opacity: 1; }
-        }
-
-        .bar:nth-child(2) { animation-delay: 0.1s; }
-        .bar:nth-child(3) { animation-delay: 0.2s; }
-
-        .message-bubble {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(12px);
-            border-radius: 18px;
-            padding: 12px 18px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.06);
-            border-top-right-radius: 4px;
-        }
-        .dark-mode .message-bubble {
-            background: rgba(255, 255, 255, 0.03);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
-        }
-
-        .step-transition {
-            animation: slideUp 0.5s ease-out;
-        }
-
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
         }
 
         .media-preview-box {
@@ -200,23 +135,22 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useCallback, useRef } = React;
+        const { useState, useEffect } = React;
 
         const Icon = ({ name, size = 20, className = "" }) => {
             const icons = {
                 zap: <path d="M13 2 L3 14h9l-1 8 10-12h-9l1-8z" />,
-                home: <React.Fragment><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></React.Fragment>,
-                layers: <React.Fragment><polygon points="12 2 2 7 12 12 22 7 12 2" /><polyline points="2 17 12 22 22 17" /><polyline points="2 12 12 17 22 12" /></React.Fragment>,
-                'bar-chart-2': <React.Fragment><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y2="20" x2="12" y2="4" /><line x1="6" y2="20" x2="6" y2="14" /></React.Fragment>,
-                sun: <React.Fragment><circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" /><line x1="18.36" y1="18.36" /><line x1="1" y1="12" /><line x1="21" y1="12" /></React.Fragment>,
+                home: <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />,
+                layers: <polygon points="12 2 2 7 12 12 22 7 12 2" />,
+                sun: <circle cx="12" cy="12" r="5" />,
                 moon: <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />,
-                'arrow-right': <React.Fragment><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></React.Fragment>,
-                x: <React.Fragment><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></React.Fragment>,
-                message: <React.Fragment><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" /></React.Fragment>,
+                'arrow-right': <polyline points="12 5 19 12 12 19" />,
+                x: <line x1="18" y1="6" x2="6" y2="18" />,
+                message: <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7" />,
                 check: <polyline points="20 6 9 17 4 12" />,
-                video: <React.Fragment><polygon points="23 7 16 12 23 17 23 7" /><rect x="1" y="5" width="15" height="14" rx="2" ry="2" /></React.Fragment>,
-                volume: <React.Fragment><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M15.54 8.46a5 5 0 0 1 0 7.07" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14" /></React.Fragment>,
-                loader: <React.Fragment><line x1="12" y1="2" x2="12" y2="6" /><line x1="12" y1="18" x2="12" y2="22" /><line x1="4.93" y1="4.93" x2="7.76" y2="7.76" /><line x1="16.24" y1="16.24" x2="19.07" y2="19.07" /><line x1="2" y1="12" x2="6" y2="12" /><line x1="18" y1="12" x2="22" y2="12" /><line x1="4.93" y1="19.07" x2="7.76" y2="16.24" /><line x1="16.24" y1="7.76" x2="19.07" y2="4.93" /></React.Fragment>
+                video: <rect x="1" y="5" width="15" height="14" rx="2" />,
+                volume: <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />,
+                loader: <circle cx="12" cy="12" r="10" />
             };
 
             return (
@@ -233,7 +167,7 @@
             const [loading, setLoading] = useState(false);
             
             const [isAIVisible, setIsAIVisible] = useState(true);
-            const [aiMessage, setAiMessage] = useState("Halo! Saya asisten ACG Intelligence. Masukkan topik idemu untuk mulai eksplorasi hari ini.");
+            const [aiMessage, setAiMessage] = useState("Halo! Studio ACG kini didukung oleh OpenAI. Mari buat konten viral!");
             const [isThinking, setIsThinking] = useState(false);
 
             const [contentData, setContentData] = useState({
@@ -246,138 +180,59 @@
                 isGeneratingAudio: false
             });
 
-            const apiKey = ""; 
+            const apiKey = ""; // Kunci akan disuntikkan secara otomatis di lingkungan runtime
 
             useEffect(() => {
                 document.body.className = isDarkMode ? 'dark-mode' : 'light-mode';
             }, [isDarkMode]);
 
-            const askAI = async (prompt, systemPrompt, schema) => {
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
-                const payload = {
-                    contents: [{ parts: [{ text: `Saran Sistem: ${systemPrompt}\n\nInput Pengguna: ${prompt}` }] }],
-                    generationConfig: { responseMimeType: "application/json", responseSchema: schema }
-                };
-                
+            const openaiRequest = async (endpoint, payload) => {
+                const url = `https://api.openai.com/v1/${endpoint}`;
                 let retries = 0;
                 while (retries < 5) {
                     try {
-                        const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-                        if (!res.ok) throw new Error("API Error");
-                        const data = await res.json();
-                        return JSON.parse(data.candidates?.[0]?.content?.parts?.[0]?.text);
+                        const res = await fetch(url, {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${apiKey}`
+                            },
+                            body: JSON.stringify(payload)
+                        });
+                        if (!res.ok) throw new Error("OpenAI API Error");
+                        return await res.json();
                     } catch (err) {
                         retries++;
                         await new Promise(r => setTimeout(r, Math.pow(2, retries) * 1000));
                     }
                 }
-                throw new Error("Gagal terhubung ke AI.");
-            };
-
-            const generateImage = async () => {
-                if (!contentData.selectedTitle) return;
-                setContentData(prev => ({ ...prev, isGeneratingVideo: true }));
-                setAiMessage("Sedang menvisualisasikan skrip dalam bentuk gambar sinematik...");
-                
-                try {
-                    const url = `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=${apiKey}`;
-                    const payload = {
-                        instances: { prompt: `Cinematic high quality visual for a video titled: ${contentData.selectedTitle}. Style: professional, viral video aesthetic, 4k.` },
-                        parameters: { sampleCount: 1 }
-                    };
-                    const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-                    const result = await res.json();
-                    const imageUrl = `data:image/png;base64,${result.predictions[0].bytesBase64Encoded}`;
-                    setContentData(prev => ({ ...prev, generatedImage: imageUrl }));
-                    setAiMessage("Visual video telah berhasil dihasilkan!");
-                } catch (e) {
-                    setAiMessage("Gagal menghasilkan visual. Coba lagi nanti.");
-                } finally {
-                    setContentData(prev => ({ ...prev, isGeneratingVideo: false }));
-                }
-            };
-
-            const generateAudio = async () => {
-                if (!contentData.script) return;
-                setContentData(prev => ({ ...prev, isGeneratingAudio: true }));
-                setAiMessage("Sedang mengonversi skrip menjadi suara profesional...");
-                
-                try {
-                    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
-                    const payload = {
-                        contents: [{ parts: [{ text: `Say with a professional and engaging tone: ${contentData.script}` }] }],
-                        generationConfig: { 
-                            responseModalities: ["AUDIO"], 
-                            speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } } } 
-                        }
-                    };
-                    const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-                    const result = await res.json();
-                    const pcmData = result.candidates[0].content.parts[0].inlineData.data;
-                    
-                    // Convert PCM to WAV for playback
-                    const wavBlob = pcmToWav(pcmData, 24000); // Assuming 24kHz sample rate
-                    const audioUrl = URL.createObjectURL(wavBlob);
-                    
-                    setContentData(prev => ({ ...prev, generatedAudio: audioUrl }));
-                    setAiMessage("Audio skrip sudah siap didengarkan!");
-                } catch (e) {
-                    setAiMessage("Gagal menghasilkan audio. Pastikan teks tidak terlalu panjang.");
-                } finally {
-                    setContentData(prev => ({ ...prev, isGeneratingAudio: false }));
-                }
-            };
-
-            // Helper to convert PCM to WAV
-            const pcmToWav = (base64Pcm, sampleRate) => {
-                const pcmBuffer = Uint8Array.from(atob(base64Pcm), c => c.charCodeAt(0)).buffer;
-                const wavHeader = new ArrayBuffer(44);
-                const view = new DataView(wavHeader);
-                const pcmSize = pcmBuffer.byteLength;
-
-                const writeString = (offset, string) => {
-                    for (let i = 0; i < string.length; i++) view.setUint8(offset + i, string.charCodeAt(i));
-                };
-
-                writeString(0, 'RIFF');
-                view.setUint32(4, 36 + pcmSize, true);
-                writeString(8, 'WAVE');
-                writeString(12, 'fmt ');
-                view.setUint32(16, 16, true);
-                view.setUint16(20, 1, true); // PCM
-                view.setUint16(22, 1, true); // Mono
-                view.setUint32(24, sampleRate, true);
-                view.setUint32(28, sampleRate * 2, true);
-                view.setUint16(32, 2, true);
-                view.setUint16(34, 16, true);
-                writeString(36, 'data');
-                view.setUint32(40, pcmSize, true);
-
-                return new Blob([wavHeader, pcmBuffer], { type: 'audio/wav' });
+                throw new Error("Gagal terhubung ke OpenAI.");
             };
 
             const handleStart = async () => {
                 if (!topic.trim()) return;
                 setLoading(true);
                 setIsThinking(true);
-                setAiMessage("Sedang memproses ide dan menganalisis tren judul konten untukmu...");
-                
-                const schema = {
-                    type: "OBJECT",
-                    properties: { options: { type: "ARRAY", items: { type: "OBJECT", properties: { title: { type: "STRING" }, score: { type: "NUMBER" } }, required: ["title", "score"] } } },
-                    required: ["options"]
-                };
+                setAiMessage("Menganalisis tren pasar dengan GPT-4o...");
                 
                 try {
-                    const res = await askAI(topic, "Berikan minimal 5 pilihan judul video viral yang menarik dalam Bahasa Indonesia.", schema);
-                    setContentData(prev => ({ ...prev, titles: res.options || [] }));
+                    const res = await openaiRequest("chat/completions", {
+                        model: "gpt-4o",
+                        messages: [
+                            { role: "system", content: "Anda adalah ahli viral marketing. Berikan respon dalam format JSON: { \"options\": [ { \"title\": \"Judul\", \"score\": 95 } ] }. Berikan 5 judul dalam Bahasa Indonesia." },
+                            { role: "user", content: `Buat judul video viral untuk topik: ${topic}` }
+                        ],
+                        response_format: { type: "json_object" }
+                    });
+                    const data = JSON.parse(res.choices[0].message.content);
+                    setContentData(prev => ({ ...prev, titles: data.options || [] }));
                     setCurrentStep(2);
-                    setAiMessage("Analisis selesai. Pilih judul yang menurutmu paling potensial!");
-                } catch (e) { 
-                    setAiMessage("Maaf, sepertinya ada masalah koneksi."); 
-                } finally { 
-                    setLoading(false); 
-                    setIsThinking(false); 
+                    setAiMessage("Judul telah dikurasi. Pilih yang paling menarik!");
+                } catch (e) {
+                    setAiMessage("Terjadi kesalahan saat menghubungi GPT-4o.");
+                } finally {
+                    setLoading(false);
+                    setIsThinking(false);
                 }
             };
 
@@ -385,228 +240,235 @@
                 setLoading(true);
                 setIsThinking(true);
                 setContentData(prev => ({ ...prev, selectedTitle: title }));
-                setAiMessage(`Pilihan yang bagus! Izinkan saya menyusun skrip untuk judul "${title}"...`);
+                setAiMessage("Menyusun skrip narasi yang engaging...");
                 
-                const schema = {
-                    type: "OBJECT",
-                    properties: { script: { type: "STRING" } },
-                    required: ["script"]
-                };
-
                 try {
-                    const res = await askAI(title, "Buat kerangka skrip video pendek yang menarik.", schema);
-                    setContentData(prev => ({ ...prev, script: res.script }));
+                    const res = await openaiRequest("chat/completions", {
+                        model: "gpt-4o",
+                        messages: [
+                            { role: "system", content: "Buat skrip video pendek (30-60 detik) yang menarik. Format JSON: { \"script\": \"Isi skrip...\" }" },
+                            { role: "user", content: `Buat skrip untuk judul: ${title}` }
+                        ],
+                        response_format: { type: "json_object" }
+                    });
+                    const data = JSON.parse(res.choices[0].message.content);
+                    setContentData(prev => ({ ...prev, script: data.script }));
                     setCurrentStep(3);
-                    setAiMessage("Skrip telah siap! Kamu sekarang bisa menghasilkan visual atau suara untuk konten ini.");
+                    setAiMessage("Skrip selesai! Sekarang mari hidupkan kontenmu.");
                 } catch (e) {
-                    setAiMessage("Gagal menyusun skrip. Coba pilih judul lain.");
+                    setAiMessage("Gagal membuat skrip.");
                 } finally {
                     setLoading(false);
                     setIsThinking(false);
                 }
             };
 
+            const generateVisual = async () => {
+                setContentData(prev => ({ ...prev, isGeneratingVideo: true }));
+                setAiMessage("DALL-E 3 sedang melukis visualisasi skripmu...");
+                
+                try {
+                    const res = await openaiRequest("images/generations", {
+                        model: "dall-e-3",
+                        prompt: `Cinematic high-quality frame for a video about: ${contentData.selectedTitle}. Style: realistic, professional lighting, 4k aesthetic.`,
+                        n: 1,
+                        size: "1024x1024"
+                    });
+                    setContentData(prev => ({ ...prev, generatedImage: res.data[0].url }));
+                    setAiMessage("Visualisasi gambar berhasil dibuat!");
+                } catch (e) {
+                    setAiMessage("Gagal menghasilkan gambar.");
+                } finally {
+                    setContentData(prev => ({ ...prev, isGeneratingVideo: false }));
+                }
+            };
+
+            const generateAudio = async () => {
+                setContentData(prev => ({ ...prev, isGeneratingAudio: true }));
+                setAiMessage("Mengonversi teks menjadi suara AI profesional...");
+                
+                try {
+                    const res = await fetch("https://api.openai.com/v1/audio/speech", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Authorization": `Bearer ${apiKey}`
+                        },
+                        body: JSON.stringify({
+                            model: "tts-1",
+                            input: contentData.script,
+                            voice: "alloy"
+                        })
+                    });
+                    const blob = await res.blob();
+                    const audioUrl = URL.createObjectURL(blob);
+                    setContentData(prev => ({ ...prev, generatedAudio: audioUrl }));
+                    setAiMessage("Audio narasi siap diputar!");
+                } catch (e) {
+                    setAiMessage("Gagal menghasilkan audio.");
+                } finally {
+                    setContentData(prev => ({ ...prev, isGeneratingAudio: false }));
+                }
+            };
+
             const resetAll = () => {
-                setTopic("");
                 setCurrentStep(1);
+                setTopic("");
                 setContentData({ titles: [], selectedTitle: "", script: "", generatedImage: null, generatedAudio: null, isGeneratingVideo: false, isGeneratingAudio: false });
-                setAiMessage("Sesi telah diatur ulang. Apa ide cemerlang selanjutnya?");
+                setAiMessage("Sesi diatur ulang. Apa proyek kita selanjutnya?");
             };
 
             return (
                 <div className="min-h-screen flex flex-col lg:flex-row bg-white dark:bg-[#050505] transition-colors duration-500">
-                    {/* Sidebar Nav */}
+                    {/* Sidebar */}
                     <nav className="w-full lg:w-24 border-b lg:border-r border-zinc-200/50 dark:border-zinc-800/50 flex flex-row lg:flex-col items-center justify-between p-4 lg:py-10 bg-white/50 dark:bg-black/50 backdrop-blur-3xl z-50">
-                        <div onClick={resetAll} className="w-14 h-14 btn-gradient rounded-[22px] flex items-center justify-center text-white shadow-xl cursor-pointer transform active:scale-90 transition-transform">
+                        <div onClick={resetAll} className="w-14 h-14 btn-openai rounded-[22px] flex items-center justify-center text-white shadow-xl cursor-pointer">
                             <Icon name="zap" size={28} />
                         </div>
                         <div className="flex flex-row lg:flex-col gap-8 items-center">
-                            {['home', 'layers', 'bar-chart-2'].map(i => (
-                                <button key={i} onClick={() => i === 'home' && resetAll()} className="p-3 rounded-2xl text-zinc-400 hover:text-blue-500 transition-all hover:bg-zinc-100 dark:hover:bg-zinc-900">
-                                    <Icon name={i} size={24} />
-                                </button>
-                            ))}
+                            <button onClick={resetAll} className="p-3 rounded-2xl text-zinc-400 hover:text-[#10a37f] transition-all">
+                                <Icon name="home" size={24} />
+                            </button>
+                            <button onClick={() => setIsDarkMode(!isDarkMode)} className="w-12 h-12 rounded-2xl border border-zinc-200 dark:border-zinc-800 flex items-center justify-center text-zinc-500">
+                                <Icon name={isDarkMode ? "sun" : "moon"} size={20} />
+                            </button>
                         </div>
-                        <button onClick={() => setIsDarkMode(!isDarkMode)} className="w-12 h-12 rounded-2xl border border-zinc-200 dark:border-zinc-800 flex items-center justify-center text-zinc-500">
-                            <Icon name={isDarkMode ? "sun" : "moon"} size={20} />
-                        </button>
                     </nav>
 
-                    {/* Main Interface */}
+                    {/* Content */}
                     <main className="flex-1 overflow-y-auto p-6 md:p-16">
                         <div className="max-w-4xl mx-auto">
                             <header className="mb-16">
-                                <div className="inline-block px-4 py-1.5 rounded-full bg-blue-500/10 text-blue-500 text-xs font-bold tracking-widest uppercase mb-4 border border-blue-500/20">
-                                    Next-Gen Creator Tools
+                                <div className="inline-block px-4 py-1.5 rounded-full bg-[#10a37f]/10 text-[#10a37f] text-xs font-bold tracking-widest uppercase mb-4">
+                                    Powered by OpenAI Ecosystem
                                 </div>
                                 <h1 className="text-5xl md:text-7xl font-extrabold tracking-tighter text-zinc-900 dark:text-zinc-100">
                                     <span className="shimmer-text">STUDIO</span> <br/> ACG v6.5
                                 </h1>
                             </header>
 
-                            <div className="step-transition">
-                                {currentStep === 1 && (
-                                    <div className="bento-card p-10 space-y-8 shadow-2xl">
-                                        <div className="space-y-2">
-                                            <label className="text-xs font-black uppercase tracking-widest text-zinc-400">Topik Konten</label>
-                                            <textarea 
-                                                value={topic}
-                                                onChange={e => setTopic(e.target.value)}
-                                                placeholder="Tulis ide kontenmu di sini..."
-                                                className="w-full h-44 input-glass p-6 text-xl font-semibold outline-none resize-none placeholder:text-zinc-500/30 dark:text-white"
-                                            />
-                                        </div>
+                            {currentStep === 1 && (
+                                <div className="bento-card p-10 space-y-8 shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-700">
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-black uppercase tracking-widest text-zinc-400">Ide Konten Utama</label>
+                                        <textarea 
+                                            value={topic}
+                                            onChange={e => setTopic(e.target.value)}
+                                            placeholder="Misal: Cara sukses jualan online di 2024..."
+                                            className="w-full h-44 input-glass p-6 text-xl font-semibold outline-none resize-none dark:text-white"
+                                        />
+                                    </div>
+                                    <button 
+                                        disabled={loading || !topic.trim()}
+                                        onClick={handleStart} 
+                                        className="w-full py-6 btn-openai text-white font-bold rounded-[22px] tracking-widest uppercase shadow-2xl transition-all active:scale-[0.98] disabled:opacity-50"
+                                    >
+                                        {loading ? 'Processing GPT...' : 'Generate Konsep'}
+                                    </button>
+                                </div>
+                            )}
+
+                            {currentStep === 2 && (
+                                <div className="grid gap-4 animate-in fade-in slide-in-from-right-4 duration-500">
+                                    <p className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-2">Pilih Hook Terbaik:</p>
+                                    {contentData.titles.map((t, i) => (
                                         <button 
-                                            disabled={loading || !topic.trim()}
-                                            onClick={handleStart} 
-                                            className={`w-full py-6 btn-gradient text-white font-bold rounded-[22px] tracking-widest uppercase shadow-2xl transform transition-all active:scale-[0.98] ${loading ? 'opacity-50 cursor-not-allowed' : 'hover:-translate-y-1'}`}
+                                            key={i} 
+                                            onClick={() => selectTitle(t.title)}
+                                            className="w-full bento-card p-8 flex items-center justify-between group hover:border-[#10a37f]/50 cursor-pointer"
                                         >
-                                            {loading ? 'Menganalisis...' : 'Eksplorasi Ide'}
+                                            <div className="text-left">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className="w-2 h-2 rounded-full bg-[#10a37f]"></span>
+                                                    <p className="text-[10px] font-black uppercase text-[#10a37f] tracking-widest">Viral Score: {t.score}%</p>
+                                                </div>
+                                                <p className="font-bold text-2xl dark:text-zinc-200">{t.title}</p>
+                                            </div>
+                                            <div className="w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center group-hover:bg-[#10a37f] group-hover:text-white transition-all">
+                                                <Icon name="arrow-right" size={20} />
+                                            </div>
                                         </button>
-                                    </div>
-                                )}
+                                    ))}
+                                </div>
+                            )}
 
-                                {currentStep === 2 && (
-                                    <div className="grid gap-4">
-                                        <p className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-2">Pilih Judul Strategis:</p>
-                                        {contentData.titles.map((t, i) => (
-                                            <button 
-                                                key={i} 
-                                                onClick={() => selectTitle(t.title)}
-                                                className="w-full bento-card p-8 flex items-center justify-between group hover:border-blue-500/50 hover:bg-blue-500/5 cursor-pointer"
-                                            >
-                                                <div className="text-left">
-                                                    <div className="flex items-center gap-2 mb-1">
-                                                        <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                                                        <p className="text-[10px] font-black uppercase text-blue-500 tracking-widest">Skor Viral: {t.score}%</p>
+                            {currentStep === 3 && (
+                                <div className="space-y-8 animate-in fade-in zoom-in-95 duration-500">
+                                    <div className="bento-card p-10 shadow-2xl space-y-6">
+                                        <h2 className="text-2xl font-bold dark:text-white">Draft Skrip OpenAI</h2>
+                                        <div className="input-glass p-6 min-h-[150px] whitespace-pre-wrap dark:text-zinc-300 italic">
+                                            {contentData.script}
+                                        </div>
+                                    </div>
+
+                                    <div className="grid md:grid-cols-2 gap-6">
+                                        {/* Visual Section */}
+                                        <div className="bento-card p-8 space-y-4">
+                                            <div className="flex items-center gap-3">
+                                                <Icon name="video" className="text-[#10a37f]" />
+                                                <h3 className="font-bold uppercase tracking-widest text-xs dark:text-zinc-400">DALL-E Visualizer</h3>
+                                            </div>
+                                            <div className="media-preview-box aspect-video">
+                                                {contentData.isGeneratingVideo ? (
+                                                    <div className="flex flex-col items-center gap-2">
+                                                        <div className="w-8 h-8 border-4 border-[#10a37f] border-t-transparent rounded-full animate-spin"></div>
+                                                        <p className="text-[10px] font-bold uppercase tracking-widest loading-pulse">Painting...</p>
                                                     </div>
-                                                    <p className="font-bold text-2xl text-zinc-800 dark:text-zinc-200">{t.title}</p>
-                                                </div>
-                                                <div className="w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center group-hover:bg-blue-500 group-hover:text-white transition-all">
-                                                    <Icon name="arrow-right" size={20} />
-                                                </div>
+                                                ) : contentData.generatedImage ? (
+                                                    <img src={contentData.generatedImage} className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <p className="text-[10px] font-bold uppercase tracking-widest opacity-30">Belum ada visual</p>
+                                                )}
+                                            </div>
+                                            <button onClick={generateVisual} disabled={contentData.isGeneratingVideo} className="w-full py-3 border border-[#10a37f]/30 text-[#10a37f] font-bold rounded-xl text-[10px] uppercase tracking-widest hover:bg-[#10a37f] hover:text-white transition-all">
+                                                Generate Visual
                                             </button>
-                                        ))}
-                                    </div>
-                                )}
-
-                                {currentStep === 3 && (
-                                    <div className="space-y-8">
-                                        <div className="bento-card p-10 shadow-2xl space-y-6">
-                                            <div className="flex items-center justify-between">
-                                                <h2 className="text-2xl font-bold dark:text-white">Skrip: {contentData.selectedTitle}</h2>
-                                                <Icon name="check" className="text-green-500" />
-                                            </div>
-                                            <div className="input-glass p-6 min-h-[150px] whitespace-pre-wrap dark:text-zinc-300">
-                                                {contentData.script}
-                                            </div>
-                                            <div className="flex gap-4">
-                                                <button onClick={() => { document.execCommand('copy'); setAiMessage("Teks disalin!"); }} className="flex-1 py-4 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-black font-bold rounded-2xl text-xs uppercase tracking-widest">Salin Skrip</button>
-                                                <button onClick={resetAll} className="px-6 py-4 border border-zinc-200 dark:border-zinc-800 rounded-2xl font-bold text-xs uppercase tracking-widest dark:text-white">Ulang</button>
-                                            </div>
                                         </div>
 
-                                        {/* Generation Tools Section */}
-                                        <div className="grid md:grid-cols-2 gap-6">
-                                            {/* Video Generator */}
-                                            <div className="bento-card p-8 space-y-4">
-                                                <div className="flex items-center gap-3 mb-2">
-                                                    <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500">
-                                                        <Icon name="video" />
-                                                    </div>
-                                                    <h3 className="font-bold uppercase tracking-widest text-xs dark:text-zinc-400">Video Visualizer</h3>
-                                                </div>
-                                                <div className="media-preview-box aspect-video">
-                                                    {contentData.isGeneratingVideo ? (
-                                                        <div className="flex flex-col items-center gap-2">
-                                                            <Icon name="loader" className="animate-spin text-blue-500" />
-                                                            <p className="text-[10px] font-bold uppercase tracking-widest loading-pulse">Generating...</p>
-                                                        </div>
-                                                    ) : contentData.generatedImage ? (
-                                                        <img src={contentData.generatedImage} className="w-full h-full object-cover" />
-                                                    ) : (
-                                                        <p className="text-[10px] font-bold uppercase tracking-widest opacity-30 text-center px-4">Belum ada visual yang dibuat</p>
-                                                    )}
-                                                </div>
-                                                <button 
-                                                    onClick={generateImage}
-                                                    disabled={contentData.isGeneratingVideo}
-                                                    className="w-full py-3 border border-blue-500/30 text-blue-500 font-bold rounded-xl text-[10px] uppercase tracking-widest hover:bg-blue-500 hover:text-white transition-all disabled:opacity-50"
-                                                >
-                                                    Hasilkan Visual
-                                                </button>
+                                        {/* Audio Section */}
+                                        <div className="bento-card p-8 space-y-4">
+                                            <div className="flex items-center gap-3">
+                                                <Icon name="volume" className="text-[#10a37f]" />
+                                                <h3 className="font-bold uppercase tracking-widest text-xs dark:text-zinc-400">OpenAI TTS</h3>
                                             </div>
-
-                                            {/* Audio Generator */}
-                                            <div className="bento-card p-8 space-y-4">
-                                                <div className="flex items-center gap-3 mb-2">
-                                                    <div className="p-2 rounded-lg bg-purple-500/10 text-purple-500">
-                                                        <Icon name="volume" />
+                                            <div className="media-preview-box h-32">
+                                                {contentData.isGeneratingAudio ? (
+                                                    <div className="flex flex-col items-center gap-2">
+                                                        <div className="visualizer"><div className="bar"></div><div className="bar"></div><div className="bar"></div></div>
+                                                        <p className="text-[10px] font-bold uppercase tracking-widest loading-pulse">Speaking...</p>
                                                     </div>
-                                                    <h3 className="font-bold uppercase tracking-widest text-xs dark:text-zinc-400">Sound Generator</h3>
-                                                </div>
-                                                <div className="media-preview-box h-32">
-                                                    {contentData.isGeneratingAudio ? (
-                                                        <div className="flex flex-col items-center gap-2">
-                                                            <Icon name="loader" className="animate-spin text-purple-500" />
-                                                            <p className="text-[10px] font-bold uppercase tracking-widest loading-pulse">Synthesizing...</p>
-                                                        </div>
-                                                    ) : contentData.generatedAudio ? (
-                                                        <div className="w-full px-6">
-                                                            <audio controls src={contentData.generatedAudio} className="w-full" />
-                                                        </div>
-                                                    ) : (
-                                                        <p className="text-[10px] font-bold uppercase tracking-widest opacity-30 text-center px-4">Belum ada audio yang dibuat</p>
-                                                    )}
-                                                </div>
-                                                <button 
-                                                    onClick={generateAudio}
-                                                    disabled={contentData.isGeneratingAudio}
-                                                    className="w-full py-3 border border-purple-500/30 text-purple-500 font-bold rounded-xl text-[10px] uppercase tracking-widest hover:bg-purple-500 hover:text-white transition-all disabled:opacity-50"
-                                                >
-                                                    Hasilkan Suara
-                                                </button>
+                                                ) : contentData.generatedAudio ? (
+                                                    <audio controls src={contentData.generatedAudio} className="w-full px-4" />
+                                                ) : (
+                                                    <p className="text-[10px] font-bold uppercase tracking-widest opacity-30">Belum ada audio</p>
+                                                )}
                                             </div>
+                                            <button onClick={generateAudio} disabled={contentData.isGeneratingAudio} className="w-full py-3 border border-[#10a37f]/30 text-[#10a37f] font-bold rounded-xl text-[10px] uppercase tracking-widest hover:bg-[#10a37f] hover:text-white transition-all">
+                                                Generate Audio
+                                            </button>
                                         </div>
                                     </div>
-                                )}
-                            </div>
+                                </div>
+                            )}
                         </div>
                     </main>
 
-                    {/* Top Right Floating Assistant Dock */}
-                    <div className={`assistant-top-dock ${!isAIVisible ? 'minimized' : ''}`}>
-                        <div className="flex flex-col items-end gap-3 relative z-10">
+                    {/* AI Floating Dock */}
+                    <div className="assistant-top-dock">
+                        <div className="flex flex-col items-end gap-3">
                             <div className="flex items-center gap-4">
                                 {isThinking && (
                                     <div className="visualizer bg-white/50 dark:bg-black/20 px-3 py-1.5 rounded-full backdrop-blur-md">
-                                        <div className="bar"></div>
-                                        <div className="bar"></div>
-                                        <div className="bar"></div>
+                                        <div className="bar"></div><div className="bar"></div><div className="bar"></div>
                                     </div>
                                 )}
-                                <div className="relative flex-shrink-0">
-                                    {isThinking && <div className="ai-pulse-ring"></div>}
-                                    <div className="ai-orb">
-                                        <div className="absolute inset-0 bg-gradient-to-br from-transparent via-white/10 to-transparent animate-pulse"></div>
-                                    </div>
-                                </div>
-                                <button onClick={() => setIsAIVisible(false)} className="w-8 h-8 rounded-full flex items-center justify-center bg-white/20 dark:bg-black/20 text-zinc-400 hover:text-red-500 backdrop-blur-md">
-                                    <Icon name="x" size={14} />
-                                </button>
+                                <div className="ai-orb"></div>
                             </div>
-                            <div className="message-bubble max-w-full text-right">
-                                <div className="mb-1"><span className="text-[9px] font-black uppercase tracking-[0.2em] text-blue-500">ACG Intelligence</span></div>
-                                <p className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 leading-relaxed italic">"{aiMessage}"</p>
+                            <div className="bg-white/90 dark:bg-black/80 backdrop-blur-md p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-xl max-w-xs text-right">
+                                <p className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 italic">"{aiMessage}"</p>
                             </div>
                         </div>
                     </div>
-
-                    {!isAIVisible && (
-                        <button onClick={() => setIsAIVisible(true)} className="fixed top-8 right-8 w-12 h-12 btn-gradient rounded-full flex items-center justify-center text-white shadow-2xl z-[1001] transition-transform hover:scale-110">
-                            <Icon name="message" size={20} />
-                        </button>
-                    )}
                 </div>
             );
         };
