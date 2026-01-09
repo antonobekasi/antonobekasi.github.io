@@ -49,36 +49,51 @@
 
         .compass-container {
             position: relative;
-            width: 240px;
-            height: 240px;
+            width: 260px;
+            height: 260px;
             border-radius: 50%;
             background: radial-gradient(circle, #ffffff 0%, #f8fafc 100%);
             border: 12px solid #ffffff;
             box-shadow: inset 0 2px 10px rgba(0,0,0,0.1), 0 10px 25px rgba(0,0,0,0.05);
             margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: border-color 0.5s ease;
+        }
+
+        .compass-disk {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.1s ease-out;
         }
 
         .compass-arrow {
             position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 6px;
-            height: 90px;
+            width: 4px;
+            height: 100px;
             background: linear-gradient(to bottom, #ef4444 50%, #cbd5e1 50%);
-            border-radius: 10px;
-            transform-origin: center;
-            transform: translate(-50%, -50%) rotate(0deg);
+            border-radius: 4px;
             z-index: 10;
+        }
+
+        .kiblat-marker-wrapper {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            z-index: 20;
+            pointer-events: none;
         }
 
         .kiblat-icon {
             position: absolute;
-            top: 15px;
+            top: -10px;
             left: 50%;
             transform: translateX(-50%);
             color: #059669;
-            font-size: 1.5rem;
-            z-index: 20;
+            font-size: 2rem;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
         }
 
         .nav-tab {
@@ -98,6 +113,15 @@
 
         .pulse {
             animation: pulse-soft 2s infinite ease-in-out;
+        }
+
+        .accuracy-indicator {
+            font-size: 10px;
+            font-weight: bold;
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-top: 10px;
+            display: inline-block;
         }
     </style>
 </head>
@@ -156,7 +180,6 @@
             </div>
             
             <div id="prayer-list" class="space-y-3">
-                <!-- Skeleton Loader -->
                 <div class="animate-pulse space-y-3">
                     <div class="h-16 bg-white/50 rounded-2xl"></div>
                     <div class="h-16 bg-white/50 rounded-2xl"></div>
@@ -170,27 +193,39 @@
             <div class="glass-card rounded-[2.5rem] p-8 text-center">
                 <h3 class="font-extrabold text-slate-800 text-xl mb-6">Penunjuk Arah Kiblat</h3>
                 
-                <div class="compass-container mb-8" id="compass-ui">
-                    <div class="kiblat-icon" id="kiblat-marker">
-                        <i class="fas fa-kaaba"></i>
+                <div class="compass-container" id="compass-outer">
+                    <div class="compass-disk" id="compass-disk">
+                        <!-- Cardinal Points inside the disk -->
+                        <span class="absolute top-4 left-1/2 -translate-x-1/2 text-[12px] font-black text-slate-400">U</span>
+                        <span class="absolute bottom-4 left-1/2 -translate-x-1/2 text-[12px] font-black text-slate-400">S</span>
+                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-[12px] font-black text-slate-400">B</span>
+                        <span class="absolute right-4 top-1/2 -translate-y-1/2 text-[12px] font-black text-slate-400">T</span>
+                        
+                        <!-- Static North Arrow on Disk -->
+                        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 compass-arrow"></div>
                     </div>
-                    <div class="compass-arrow" id="arrow"></div>
-                    <!-- Cardinal Points -->
-                    <span class="absolute top-2 left-1/2 -translate-x-1/2 text-[10px] font-black text-slate-300">U</span>
-                    <span class="absolute bottom-2 left-1/2 -translate-x-1/2 text-[10px] font-black text-slate-300">S</span>
-                    <span class="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-300">B</span>
-                    <span class="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-300">T</span>
+
+                    <!-- Fixed Kiblat Marker relative to North -->
+                    <div class="kiblat-marker-wrapper" id="kiblat-wrapper">
+                        <div class="kiblat-icon">
+                            <i class="fas fa-kaaba"></i>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="bg-slate-50 rounded-2xl p-4 inline-block mb-6 border border-slate-100">
-                    <p id="qibla-degree" class="text-sm font-bold text-slate-600 tracking-wide">Mendeteksi arah...</p>
+                <div id="accuracy-box" class="accuracy-indicator bg-slate-100 text-slate-500 mt-4">
+                    Menunggu Sensor...
+                </div>
+
+                <div class="bg-slate-50 rounded-2xl p-4 block mt-4 mb-6 border border-slate-100">
+                    <p id="qibla-degree" class="text-sm font-bold text-slate-600 tracking-wide">Mendeteksi koordinat...</p>
                 </div>
 
                 <button onclick="requestCompassPermission()" class="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 transition shadow-lg shadow-slate-200 flex items-center justify-center gap-3">
                     <i class="fas fa-sync-alt"></i> Kalibrasi Kompas
                 </button>
                 <p class="text-[10px] text-slate-400 mt-4 leading-relaxed px-4">
-                    Gunakan perangkat dalam posisi datar. Sensor kompas mungkin tidak tersedia pada semua perangkat desktop.
+                    Pegang perangkat dalam posisi horizontal (rata). Jauhkan dari benda logam atau magnet untuk akurasi maksimal.
                 </p>
             </div>
         </div>
@@ -213,8 +248,9 @@
 
     <script>
         let prayerTimes = {};
-        let qiblaDirection = 0;
+        let qiblaAngle = 0; // True Qibla angle from North
         let coords = { lat: 0, lng: 0 };
+        let currentHeading = 0;
 
         window.onload = () => {
             updateTime();
@@ -275,7 +311,6 @@
                 const date = new Date();
                 const timestamp = Math.floor(date.getTime() / 1000);
                 
-                // Fetch Address
                 fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lng}`)
                     .then(r => r.json())
                     .then(data => {
@@ -285,13 +320,21 @@
 
                 const res = await fetch(`https://api.aladhan.com/v1/timings/${timestamp}?latitude=${coords.lat}&longitude=${coords.lng}&method=11`);
                 const data = await res.json();
-                
                 prayerTimes = data.data.timings;
 
-                const qiblaRes = await fetch(`https://api.aladhan.com/v1/qibla/${coords.lat}/${coords.lng}`);
-                const qiblaData = await qiblaRes.json();
-                qiblaDirection = qiblaData.data.direction;
-                document.getElementById('qibla-degree').innerText = `${Math.round(qiblaDirection)}° Menuju Ka'bah`;
+                // Hitung Sudut Kiblat secara akurat menggunakan rumus Great Circle
+                const phiK = 21.4225 * Math.PI / 180; // Latitude Mekkah
+                const lambdaK = 39.8262 * Math.PI / 180; // Longitude Mekkah
+                const phi = coords.lat * Math.PI / 180;
+                const lambda = coords.lng * Math.PI / 180;
+
+                const y = Math.sin(lambdaK - lambda);
+                const x = Math.cos(phi) * Math.tan(phiK) - Math.sin(phi) * Math.cos(lambdaK - lambda);
+                qiblaAngle = Math.atan2(y, x) * 180 / Math.PI;
+                if (qiblaAngle < 0) qiblaAngle += 360;
+
+                document.getElementById('qibla-degree').innerText = `Kiblat: ${Math.round(qiblaAngle)}° dari Utara`;
+                document.getElementById('kiblat-wrapper').style.transform = `rotate(${qiblaAngle}deg)`;
 
                 renderPrayerList();
             } catch (err) {
@@ -341,7 +384,6 @@
                     nextPrayer = { name: key, time: pDate };
                 }
 
-                // Auto Alarm
                 if (Math.abs(pDate - now) < 2000) {
                     triggerAlarm(key);
                 }
@@ -359,7 +401,6 @@
             const displayNames = { 'Fajr': 'Subuh', 'Dhuhr': 'Dzuhur', 'Asr': 'Ashar', 'Maghrib': 'Maghrib', 'Isha': 'Isya' };
             document.getElementById('next-prayer-name').innerText = displayNames[nextPrayer.name];
             
-            // Highlight Upcoming
             document.querySelectorAll('.prayer-card').forEach(el => el.classList.remove('active-prayer-card'));
             const activeCard = document.getElementById(`card-${nextPrayer.name}`);
             if(activeCard) activeCard.classList.add('active-prayer-card');
@@ -375,11 +416,8 @@
         function triggerAlarm(name) {
             if(alarmDebounce) return;
             alarmDebounce = true;
-            
-            const displayNames = { 'Fajr': 'Subuh', 'Dhuhr': 'Dzuhur', 'Asr': 'Ashar', 'Maghrib': 'Maghrib', 'Isha': 'Isya' };
-            document.getElementById('modal-prayer-name').innerText = displayNames[name];
+            document.getElementById('modal-prayer-name').innerText = name;
             document.getElementById('notification-modal').style.display = 'flex';
-            
             if (navigator.vibrate) navigator.vibrate([300, 100, 300]);
             setTimeout(() => alarmDebounce = false, 60000);
         }
@@ -388,12 +426,15 @@
             document.getElementById('notification-modal').style.display = 'none';
         }
 
+        // --- ENHANCED COMPASS LOGIC ---
         function requestCompassPermission() {
-            if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
                 DeviceOrientationEvent.requestPermission()
                     .then(permissionState => {
                         if (permissionState === 'granted') {
                             window.addEventListener('deviceorientation', handleOrientation, true);
+                        } else {
+                            alert("Izin sensor ditolak.");
                         }
                     })
                     .catch(console.error);
@@ -403,21 +444,42 @@
         }
 
         function handleOrientation(event) {
-            let heading = event.webkitCompassHeading || event.alpha;
-            if (typeof heading !== 'undefined') {
-                const arrow = document.getElementById('arrow');
-                const kiblatMarker = document.getElementById('kiblat-marker');
-                
-                arrow.style.transform = `translate(-50%, -50%) rotate(${-heading}deg)`;
-                
-                const relativeQibla = qiblaDirection - heading;
-                kiblatMarker.style.transform = `translateX(-50%) rotate(${relativeQibla}deg)`;
-                kiblatMarker.style.transformOrigin = `center 120px`;
+            let heading = 0;
+            const accuracyBox = document.getElementById('accuracy-box');
 
-                if (Math.abs(relativeQibla % 360) < 5) {
-                    document.getElementById('compass-ui').style.borderColor = "#059669";
+            // iOS support
+            if (event.webkitCompassHeading) {
+                heading = event.webkitCompassHeading;
+                accuracyBox.innerText = "Status: Akurat (iOS)";
+                accuracyBox.className = "accuracy-indicator bg-emerald-100 text-emerald-600 mt-4";
+            } 
+            // Android / Standard support
+            else if (event.alpha !== null) {
+                // Alpha biasanya relatif terhadap tempat mulai, tapi jika absolute true maka ke Utara
+                heading = 360 - event.alpha; 
+                accuracyBox.innerText = "Status: Aktif (Kalibrasi...)";
+                accuracyBox.className = "accuracy-indicator bg-amber-100 text-amber-600 mt-4";
+            }
+
+            if (heading !== 0) {
+                const disk = document.getElementById('compass-disk');
+                const outer = document.getElementById('compass-outer');
+                
+                // Putar piringan kompas agar Utara selalu ke arah Utara sebenarnya
+                disk.style.transform = `rotate(${-heading}deg)`;
+                
+                // Sudut relatif Kiblat terhadap orientasi HP saat ini
+                const relativeQibla = (qiblaAngle - heading + 360) % 360;
+
+                // Feedback visual jika sudah mendekati arah kiblat (toleransi 5 derajat)
+                if (relativeQibla < 5 || relativeQibla > 355) {
+                    outer.style.borderColor = "#059669";
+                    outer.classList.add('pulse');
+                    accuracyBox.innerText = "ARAH KIBLAT TEPAT";
+                    accuracyBox.className = "accuracy-indicator bg-emerald-500 text-white mt-4 shadow-lg";
                 } else {
-                    document.getElementById('compass-ui').style.borderColor = "#ffffff";
+                    outer.style.borderColor = "#ffffff";
+                    outer.classList.remove('pulse');
                 }
             }
         }
