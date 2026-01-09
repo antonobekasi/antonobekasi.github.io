@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jadwal Sholat Digital</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700&display=swap');
+        
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f0f4f8;
+        }
+
+        .glass-morphism {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .active-prayer {
+            background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+            color: white;
+            transform: scale(1.02);
+            transition: all 0.3s ease;
+        }
+
+        .compass {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            border: 8px solid #e2e8f0;
+            margin: 20px auto;
+            transition: transform 0.1s ease-out;
+        }
+
+        .compass-arrow {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 4px;
+            height: 80px;
+            background: #ef4444;
+            transform-origin: bottom center;
+            transform: translate(-50%, -100%) rotate(0deg);
+        }
+
+        .kiblat-marker {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 30px;
+            height: 30px;
+            background: #059669;
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+            transform-origin: center;
+            transform: translate(-50%, -85px);
+        }
+    </style>
+</head>
+<body class="min-h-screen pb-12">
+
+    <!-- Header & Info Lokasi -->
+    <header class="bg-emerald-700 text-white p-6 shadow-lg rounded-b-[2rem] mb-6">
+        <div class="max-w-md mx-auto flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-bold">Jadwal Sholat</h1>
+                <p id="location-text" class="text-emerald-100 text-sm">
+                    <i class="fas fa-location-dot mr-1"></i> Mendeteksi lokasi...
+                </p>
+            </div>
+            <div class="text-right">
+                <p id="current-time" class="text-xl font-bold">00:00:00</p>
+                <p id="current-date" class="text-xs text-emerald-100">Memuat tanggal...</p>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-md mx-auto px-4 space-y-4">
+        
+        <!-- Next Prayer Countdown -->
+        <div class="glass-morphism rounded-2xl p-6 text-center shadow-sm">
+            <p class="text-gray-500 text-sm mb-1 uppercase tracking-wider font-semibold">Menuju Waktu Berikutnya</p>
+            <h2 id="next-prayer-name" class="text-3xl font-bold text-emerald-800">-</h2>
+            <div id="countdown" class="text-2xl font-mono mt-2 text-gray-700">00:00:00</div>
+        </div>
+
+        <!-- Prayer Times List -->
+        <div class="glass-morphism rounded-2xl p-2 shadow-sm space-y-1" id="prayer-list">
+            <!-- Items will be injected by JS -->
+            <div class="flex justify-center p-8">
+                <i class="fas fa-circle-notch fa-spin text-emerald-500 text-2xl"></i>
+            </div>
+        </div>
+
+        <!-- Qibla Section -->
+        <div class="glass-morphism rounded-2xl p-6 shadow-sm text-center">
+            <h3 class="font-bold text-gray-800 mb-4"><i class="fas fa-compass mr-2"></i>Arah Kiblat</h3>
+            <div class="compass" id="compass-ui">
+                <div class="kiblat-marker" id="kiblat-marker"></div>
+                <div class="compass-arrow" id="arrow"></div>
+                <div class="absolute inset-0 flex items-center justify-center text-gray-300 font-bold opacity-20">
+                    <span class="text-xl">U</span>
+                </div>
+            </div>
+            <p id="qibla-degree" class="text-sm text-gray-500 mt-2">Mendeteksi arah...</p>
+            <button onclick="requestCompassPermission()" class="mt-4 px-4 py-2 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold hover:bg-emerald-200 transition">
+                Aktifkan Sensor Kompas
+            </button>
+        </div>
+
+    </main>
+
+    <!-- Modal Notifikasi -->
+    <div id="notification-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-6">
+        <div class="bg-white rounded-3xl p-8 text-center max-w-xs w-full shadow-2xl">
+            <div class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
+                <i class="fas fa-mosque"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-800 mb-2">Waktunya Sholat!</h2>
+            <p id="modal-prayer-name" class="text-gray-600 mb-6 font-semibold text-lg uppercase"></p>
+            <button onclick="closeModal()" class="w-full py-3 bg-emerald-600 text-white rounded-xl font-bold shadow-lg shadow-emerald-200">
+                Alhamdulillah
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let prayerTimes = {};
+        let qiblaDirection = 0;
+        let coords = { lat: 0, lng: 0 };
+
+        // 1. Initial Setup
+        window.onload = () => {
+            updateTime();
+            setInterval(updateTime, 1000);
+            getLocation();
+        };
+
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('current-time').innerText = now.toLocaleTimeString('id-ID', { hour12: false });
+            document.getElementById('current-date').innerText = now.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            
+            if (Object.keys(prayerTimes).length > 0) {
+                updateCountdown();
+            }
+        }
+
+        // 2. Get Location & API Data
+        function getLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(position => {
+                    coords.lat = position.coords.latitude;
+                    coords.lng = position.coords.longitude;
+                    fetchPrayerTimes();
+                }, error => {
+                    document.getElementById('location-text').innerText = "Gagal akses lokasi. Default: Jakarta";
+                    coords.lat = -6.2088; // Default Jakarta
+                    coords.lng = 106.8456;
+                    fetchPrayerTimes();
+                });
+            }
+        }
+
+        async function fetchPrayerTimes() {
+            try {
+                const date = new Date();
+                const timestamp = Math.floor(date.getTime() / 1000);
+                
+                // Fetch Address Name
+                const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lng}`);
+                const geoData = await geoRes.json();
+                const city = geoData.address.city || geoData.address.town || geoData.address.state || "Lokasi Anda";
+                document.getElementById('location-text').innerHTML = `<i class="fas fa-location-dot mr-1"></i> ${city}`;
+
+                // Fetch Prayer Times
+                const res = await fetch(`https://api.aladhan.com/v1/timings/${timestamp}?latitude=${coords.lat}&longitude=${coords.lng}&method=11`);
+                const data = await res.json();
+                
+                prayerTimes = data.data.timings;
+                qiblaDirection = data.data.meta.method.id === 11 ? 295 : 295; // Default manual placeholder or from API
+
+                // Fetch Kiblat specific
+                const qiblaRes = await fetch(`https://api.aladhan.com/v1/qibla/${coords.lat}/${coords.lng}`);
+                const qiblaData = await qiblaRes.json();
+                qiblaDirection = qiblaData.data.direction;
+                document.getElementById('qibla-degree').innerText = `Kiblat: ${Math.round(qiblaDirection)}° dari Utara`;
+
+                renderPrayerList();
+            } catch (err) {
+                console.error(err);
+                document.getElementById('location-text').innerText = "Gagal memuat data.";
+            }
+        }
+
+        // 3. Render UI
+        function renderPrayerList() {
+            const list = document.getElementById('prayer-list');
+            const displayPrayers = {
+                'Fajr': 'Subuh',
+                'Dhuhr': 'Dzuhur',
+                'Asr': 'Ashar',
+                'Maghrib': 'Maghrib',
+                'Isha': 'Isya'
+            };
+
+            let html = '';
+            for (const [key, label] of Object.entries(displayPrayers)) {
+                html += `
+                    <div id="card-${key}" class="flex justify-between items-center p-4 rounded-xl transition-all duration-500">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 icon-box">
+                                <i class="fas ${getIcon(key)}"></i>
+                            </div>
+                            <span class="font-semibold text-gray-700">${label}</span>
+                        </div>
+                        <span class="font-mono text-lg font-bold">${prayerTimes[key]}</span>
+                    </div>
+                `;
+            }
+            list.innerHTML = html;
+        }
+
+        function getIcon(key) {
+            const icons = { 'Fajr': 'fa-cloud-sun', 'Dhuhr': 'fa-sun', 'Asr': 'fa-cloud', 'Maghrib': 'fa-moon', 'Isha': 'fa-star' };
+            return icons[key];
+        }
+
+        // 4. Countdown Logic
+        function updateCountdown() {
+            const now = new Date();
+            const prayerKeys = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+            let nextPrayer = null;
+            let minDiff = Infinity;
+
+            prayerKeys.forEach(key => {
+                const [h, m] = prayerTimes[key].split(':');
+                const pDate = new Date();
+                pDate.setHours(h, m, 0);
+
+                // Highlight Current
+                const card = document.getElementById(`card-${key}`);
+                if(card) {
+                    const diffMins = (pDate - now) / 60000;
+                    if(Math.abs(diffMins) < 1) { // Tepat waktu (toleransi 1 menit)
+                        triggerAlarm(key);
+                    }
+                }
+
+                if (pDate > now && (pDate - now) < minDiff) {
+                    minDiff = pDate - now;
+                    nextPrayer = { name: key, time: pDate };
+                }
+            });
+
+            // Handle case after Isha (Next is Fajr tomorrow)
+            if (!nextPrayer) {
+                const [h, m] = prayerTimes['Fajr'].split(':');
+                const pDate = new Date();
+                pDate.setDate(pDate.getDate() + 1);
+                pDate.setHours(h, m, 0);
+                nextPrayer = { name: 'Fajr', time: pDate };
+                minDiff = pDate - now;
+            }
+
+            const displayNames = { 'Fajr': 'Subuh', 'Dhuhr': 'Dzuhur', 'Asr': 'Ashar', 'Maghrib': 'Maghrib', 'Isha': 'Isya' };
+            document.getElementById('next-prayer-name').innerText = displayNames[nextPrayer.name];
+            
+            // Highlight active card
+            document.querySelectorAll('#prayer-list > div').forEach(el => el.classList.remove('active-prayer'));
+            const activeCard = document.getElementById(`card-${nextPrayer.name}`);
+            // Note: In Islamic context, the "Active" is usually the one coming up or just passed. 
+            // Here we highlight the upcoming one for clarity.
+
+            const h = Math.floor(minDiff / 3600000);
+            const m = Math.floor((minDiff % 3600000) / 60000);
+            const s = Math.floor((minDiff % 60000) / 1000);
+            document.getElementById('countdown').innerText = 
+                `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+        }
+
+        // 5. Alarm & Modal
+        let lastAlarm = "";
+        function triggerAlarm(name) {
+            if(lastAlarm === name) return;
+            lastAlarm = name;
+            
+            const displayNames = { 'Fajr': 'Subuh', 'Dhuhr': 'Dzuhur', 'Asr': 'Ashar', 'Maghrib': 'Maghrib', 'Isha': 'Isya' };
+            document.getElementById('modal-prayer-name').innerText = displayNames[name];
+            document.getElementById('notification-modal').style.display = 'flex';
+            
+            // Haptic Feedback if mobile
+            if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+        }
+
+        function closeModal() {
+            document.getElementById('notification-modal').style.display = 'none';
+        }
+
+        // 6. Compass Logic
+        function requestCompassPermission() {
+            if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+                DeviceOrientationEvent.requestPermission()
+                    .then(permissionState => {
+                        if (permissionState === 'granted') {
+                            window.addEventListener('deviceorientation', handleOrientation, true);
+                        }
+                    })
+                    .catch(console.error);
+            } else {
+                window.addEventListener('deviceorientation', handleOrientation, true);
+            }
+        }
+
+        function handleOrientation(event) {
+            let heading = event.webkitCompassHeading || event.alpha;
+            if (typeof heading !== 'undefined') {
+                const arrow = document.getElementById('arrow');
+                const kiblatMarker = document.getElementById('kiblat-marker');
+                
+                // Rotasi kompas (Utara selalu 0)
+                arrow.style.transform = `translate(-50%, -100%) rotate(${-heading}deg)`;
+                
+                // Marker kiblat relatif terhadap rotasi HP
+                const relativeQibla = qiblaDirection - heading;
+                kiblatMarker.style.transform = `translate(-50%, -85px) rotate(${relativeQibla}deg)`;
+                
+                if (Math.abs(relativeQibla % 360) < 5) {
+                    document.getElementById('compass-ui').style.borderColor = "#10b981";
+                } else {
+                    document.getElementById('compass-ui').style.borderColor = "#e2e8f0";
+                }
+            }
+        }
+    </script>
+</body>
+</html>
