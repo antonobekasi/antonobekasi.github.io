@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ACG v6.7 - Ultimate AI Content Engine</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+        
+        :root {
+            --primary: #3b82f6;
+            --accent: #9333ea;
+            --bg: #030712;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg);
+            color: #f8fafc;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.1), transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(147, 51, 234, 0.1), transparent 40%);
+        }
+        
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        
+        .glass {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .glass-card {
+            background: rgba(30, 41, 59, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .glass-card:hover {
+            background: rgba(30, 41, 59, 0.7);
+            border-color: var(--primary);
+            transform: translateY(-5px) scale(1.01);
+            box-shadow: 0 10px 40px rgba(59, 130, 246, 0.1);
+        }
+        
+        .btn-gradient {
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #d946ef 100%);
+            background-size: 200% auto;
+            transition: 0.5s;
+        }
+
+        .btn-gradient:hover {
+            background-position: right center;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(139, 92, 246, 0.4);
+        }
+
+        .step-active {
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+            animation: pulse-border 2s infinite;
+        }
+
+        @keyframes pulse-border {
+            0% { border-color: rgba(59, 130, 246, 0.4); }
+            50% { border-color: rgba(59, 130, 246, 1); }
+            100% { border-color: rgba(59, 130, 246, 0.4); }
+        }
+
+        .shimmer {
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+            background-size: 200% 100%;
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        .fade-in { animation: fadeIn 0.5s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #475569; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useCallback, useRef } = React;
+
+        const Icon = ({ name, size = 20, className = "" }) => {
+            useEffect(() => { 
+                if (window.lucide) window.lucide.createIcons(); 
+            }, [name]);
+            return <i data-lucide={name} className={className} style={{ width: size, height: size }}></i>;
+        };
+
+        const STEPS = [
+            { id: 1, label: 'Ide', icon: 'lightbulb', guide: "Halo kreator! Masukkan topik dasar, dan AI akan meramu strategi kontennya." },
+            { id: 2, label: 'Judul', icon: 'heading', guide: "Pilih judul yang paling memancing rasa penasaran audiens Anda." },
+            { id: 3, label: 'Hook', icon: 'magnet', guide: "Pilih kalimat pembuka yang 'mematikan' untuk menghentikan jempol audiens." },
+            { id: 4, label: 'Naskah', icon: 'align-left', guide: "Naskah narasi dan caption sosial media Anda telah selesai disusun." },
+            { id: 5, label: 'Visual', icon: 'camera', guide: "Gunakan deskripsi visual ini untuk membuat video di AI generator." },
+            { id: 6, label: 'Siap', icon: 'check-circle', guide: "Luar biasa! Semua aset konten Anda telah siap dipublikasikan." }
+        ];
+
+        const App = () => {
+            // API Key telah diset sesuai permintaan user
+            const apiKey = "AIzaSyCKVxmW9hQz7o2OtdTOQd2jYAuA7xpTBWo"; 
+            
+            const [currentStep, setCurrentStep] = useState(1);
+            const [loading, setLoading] = useState(false);
+            const [loadingMsg, setLoadingMsg] = useState("");
+            const [error, setError] = useState(null);
+            const [isSpeaking, setIsSpeaking] = useState(false);
+            const [guideEnabled, setGuideEnabled] = useState(true);
+            
+            const [data, setData] = useState({
+                topic: "",
+                titles: [],
+                selectedTitle: "",
+                hooks: [],
+                selectedHook: "",
+                script: "",
+                imagePrompts: [],
+                caption: ""
+            });
+
+            const lastStepRef = useRef(0);
+
+            const copyToClipboard = (text, msg = "Berhasil disalin!") => {
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                speakGuide(msg);
+            };
+
+            const speakGuide = useCallback((text) => {
+                if (!guideEnabled || !('speechSynthesis' in window)) return;
+                try {
+                    window.speechSynthesis.cancel();
+                    const utterance = new SpeechSynthesisUtterance(String(text));
+                    utterance.lang = 'id-ID';
+                    utterance.onstart = () => setIsSpeaking(true);
+                    utterance.onend = () => setIsSpeaking(false);
+                    utterance.onerror = () => setIsSpeaking(false);
+                    window.speechSynthesis.speak(utterance);
+                } catch (err) {
+                    setIsSpeaking(false);
+                }
+            }, [guideEnabled]);
+
+            useEffect(() => {
+                if (currentStep !== lastStepRef.current) {
+                    const step = STEPS.find(s => s.id === currentStep);
+                    if (step) {
+                        const timer = setTimeout(() => speakGuide(step.guide), 500);
+                        lastStepRef.current = currentStep;
+                        return () => clearTimeout(timer);
+                    }
+                }
+            }, [currentStep, speakGuide]);
+
+            const callGemini = async (prompt, systemPrompt) => {
+                // Menggunakan model Gemini 2.5 Flash Preview sesuai environment
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+                
+                const payload = {
+                    contents: [{
+                        parts: [{ text: `${systemPrompt}\n\nUSER INPUT: ${prompt}` }]
+                    }],
+                    generationConfig: {
+                        responseMimeType: "application/json"
+                    }
+                };
+
+                let delay = 1000;
+                for (let i = 0; i < 5; i++) {
+                    try {
+                        const response = await fetch(url, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+                        
+                        if (!response.ok) {
+                            const errorData = await response.json();
+                            throw new Error(errorData.error?.message || "Gangguan pada API Gemini.");
+                        }
+                        
+                        const result = await response.json();
+                        const textResponse = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                        return JSON.parse(textResponse);
+                    } catch (e) {
+                        if (i === 4) throw e;
+                        await new Promise(r => setTimeout(r, delay));
+                        delay *= 2;
+                    }
+                }
+            };
+
+            const handleStart = async () => {
+                if (!data.topic.trim()) return;
+                setLoading(true); 
+                setLoadingMsg("AI sedang merancang konsep viral..."); 
+                setError(null);
+                try {
+                    const res = await callGemini(
+                        data.topic, 
+                        "Anda adalah direktur kreatif media sosial. Buat 4 judul video pendek (Reels/TikTok) yang memancing klik. Respon harus dalam format JSON: { \"titles\": [{\"text\": \"Judul\", \"viral_potential\": \"High/Medium\"}] }"
+                    );
+                    setData(p => ({ ...p, titles: res.titles }));
+                    setCurrentStep(2);
+                } catch (e) { setError(`Gagal: ${e.message}`); } finally { setLoading(false); }
+            };
+
+            const handleTitleSelect = async (t) => {
+                setLoading(true); 
+                setLoadingMsg("Merancang hook psikologis..."); 
+                setData(p => ({ ...p, selectedTitle: t }));
+                try {
+                    const res = await callGemini(
+                        t, 
+                        "Buat 3 opsi hook (kalimat pembuka) yang menahan retensi penonton di 3 detik pertama. Respon harus dalam format JSON: { \"hooks\": [\"Hook 1\", \"Hook 2\", \"Hook 3\"] }"
+                    );
+                    setData(p => ({ ...p, hooks: res.hooks }));
+                    setCurrentStep(3);
+                } catch (e) { setError(e.message); } finally { setLoading(false); }
+            };
+
+            const handleHookSelect = async (h) => {
+                setLoading(true); 
+                setLoadingMsg("Menulis skenario konten..."); 
+                setData(p => ({ ...p, selectedHook: h }));
+                try {
+                    const res = await callGemini(
+                        `Judul: ${data.selectedTitle}, Hook: ${h}`, 
+                        "Tulis naskah video lengkap dan caption untuk Instagram/TikTok dengan hashtag relevan. Respon harus dalam format JSON: { \"script\": \"...\", \"caption\": \"...\" }"
+                    );
+                    setData(p => ({ ...p, script: res.script, caption: res.caption }));
+                    setCurrentStep(4);
+                } catch (e) { setError(e.message); } finally { setLoading(false); }
+            };
+
+            const handleGoToVisual = async () => {
+                setLoading(true); 
+                setLoadingMsg("Menganalisis scene visual...");
+                try {
+                    const res = await callGemini(
+                        data.script, 
+                        "Deskripsikan 3 scene visual detail dalam bahasa Inggris untuk generator AI Video. Fokus pada pencahayaan dan sinematografi. Respon harus dalam format JSON: { \"imagePrompts\": [{\"scene\": \"Scene Title\", \"prompt\": \"Visual description\"}] }"
+                    );
+                    setData(p => ({ ...p, imagePrompts: res.imagePrompts }));
+                    setCurrentStep(5);
+                } catch (e) { setError(e.message); } finally { setLoading(false); }
+            };
+
+            return (
+                <div className="max-w-5xl mx-auto px-6 py-8 md:py-16">
+                    {/* Header */}
+                    <header className="flex flex-col md:flex-row justify-between items-center gap-6 mb-12">
+                        <div className="flex items-center gap-5">
+                            <div className="w-14 h-14 bg-blue-600 rounded-3xl flex items-center justify-center shadow-xl shadow-blue-500/20 rotate-6 hover:rotate-0 transition-all duration-500">
+                                <Icon name="bot" className="text-white" size={30}/>
+                            </div>
+                            <div>
+                                <h1 className="text-3xl font-black tracking-tighter uppercase leading-none italic">ACG <span className="text-blue-500">ULTIMATE</span></h1>
+                                <span className="text-[10px] text-zinc-500 font-bold tracking-[0.4em] uppercase">v6.7 Gemini Engine</span>
+                            </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-3 glass px-6 py-3 rounded-full border-blue-500/20">
+                            <button onClick={() => setGuideEnabled(!guideEnabled)} className={`flex items-center gap-2 transition-all ${guideEnabled ? 'text-blue-400' : 'text-zinc-600'}`}>
+                                <Icon name={guideEnabled ? "mic" : "mic-off"} size={16} className={isSpeaking ? "animate-bounce" : ""} />
+                                <span className="text-[11px] font-black uppercase tracking-widest">{guideEnabled ? "AI Voice On" : "Silent Mode"}</span>
+                            </button>
+                        </div>
+                    </header>
+
+                    {/* Progress Bar */}
+                    <nav className="flex justify-between items-center mb-16 relative px-2 md:px-10 overflow-x-auto pb-4 custom-scrollbar gap-8 md:gap-0">
+                        <div className="absolute top-[20px] left-0 w-full h-[2px] bg-zinc-800 -z-10 mx-10 hidden md:block"></div>
+                        {STEPS.map(s => (
+                            <div key={s.id} className={`flex flex-col items-center gap-3 transition-all duration-500 shrink-0 ${s.id === currentStep ? 'scale-110' : 'opacity-30'}`}>
+                                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center border-2 transition-all ${s.id <= currentStep ? 'bg-blue-600 border-blue-400 text-white step-active' : 'bg-zinc-900 border-zinc-800 text-zinc-500'}`}>
+                                    <Icon name={s.icon} size={18} />
+                                </div>
+                                <span className="text-[10px] font-black uppercase tracking-widest">{s.label}</span>
+                            </div>
+                        ))}
+                    </nav>
+
+                    <main className="fade-in min-h-[500px]">
+                        {/* Guide Banner */}
+                        <div className="mb-10 glass p-6 rounded-[2rem] border-blue-500/10 flex items-center gap-5 relative overflow-hidden group shadow-2xl">
+                            <div className="absolute -right-10 -top-10 w-40 h-40 bg-blue-500/5 rounded-full blur-3xl"></div>
+                            <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shrink-0 shadow-lg shadow-blue-500/20 border border-blue-400/30">
+                                <Icon name="sparkles" className="text-white" size={24} />
+                            </div>
+                            <div className="flex-1">
+                                <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-1">Panduan Asisten AI</p>
+                                <p className="text-lg font-semibold text-zinc-200 leading-tight italic">"{STEPS.find(s => s.id === currentStep)?.guide}"</p>
+                            </div>
+                        </div>
+
+                        {error && (
+                            <div className="mb-8 p-6 glass border-red-500/30 rounded-3xl text-red-400 text-sm flex items-center justify-between gap-4 animate-pulse">
+                                <div className="flex items-center gap-3">
+                                    <Icon name="alert-circle" size={20}/> 
+                                    <p className="font-bold">{error}</p>
+                                </div>
+                                <button onClick={() => setError(null)} className="hover:text-white">&times;</button>
+                            </div>
+                        )}
+
+                        {/* Step 1: Input */}
+                        {currentStep === 1 && (
+                            <div className="glass p-8 md:p-12 rounded-[3.5rem] border-white/5 relative shadow-inner">
+                                <div className="absolute top-8 left-8 text-[10px] font-black uppercase tracking-[0.5em] text-zinc-700">Content Genesis</div>
+                                <textarea 
+                                    className="w-full bg-transparent border-none text-3xl md:text-5xl font-black outline-none resize-none min-h-[220px] placeholder:text-zinc-800 leading-tight mt-6 focus:ring-0 italic" 
+                                    placeholder="Apa yang ingin kamu buat hari ini?" 
+                                    value={data.topic} 
+                                    onChange={e => setData({...data, topic: e.target.value})} 
+                                />
+                                <div className="mt-8 flex flex-col md:flex-row gap-4">
+                                    <button onClick={handleStart} disabled={!data.topic.trim() || loading} className="flex-1 py-7 rounded-[2rem] btn-gradient text-[12px] font-black uppercase tracking-[0.4em] flex items-center justify-center gap-4 disabled:opacity-20 shadow-xl">
+                                        ANALYZE WITH GEMINI <Icon name="zap" size={18} />
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Step 2: Titles */}
+                        {currentStep === 2 && (
+                            <div className="grid gap-6">
+                                {data.titles.map((t, i) => (
+                                    <button key={i} onClick={() => handleTitleSelect(t.text)} className="glass-card w-full p-8 md:p-10 rounded-[2.5rem] text-left flex justify-between items-center group relative overflow-hidden">
+                                        <div className="absolute left-0 top-0 h-full w-[4px] bg-blue-500 opacity-0 group-hover:opacity-100 transition-all"></div>
+                                        <div className="flex-1">
+                                            <span className="font-black text-2xl group-hover:text-blue-400 transition-colors block mb-2 italic">"{t.text}"</span>
+                                            <div className="flex gap-4">
+                                                <span className="text-[10px] font-bold text-blue-500/70 uppercase tracking-widest">Viral Potential: <span className="text-blue-400">{t.viral_potential}</span></span>
+                                            </div>
+                                        </div>
+                                        <Icon name="chevron-right" size={24} className="text-zinc-700 group-hover:text-blue-500 transition-all -translate-x-4 group-hover:translate-x-0" />
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Step 3: Hooks */}
+                        {currentStep === 3 && (
+                            <div className="grid gap-6">
+                                {data.hooks.map((h, i) => (
+                                    <button key={i} onClick={() => handleHookSelect(h)} className="glass-card w-full p-10 rounded-[3rem] text-left flex items-start gap-8 group">
+                                        <div className="w-14 h-14 rounded-3xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-500 font-black text-xl shrink-0 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-lg">0{i+1}</div>
+                                        <div className="space-y-2">
+                                            <p className="text-2xl font-bold text-zinc-300 leading-snug group-hover:text-white transition-colors">"{h}"</p>
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-zinc-600 group-hover:text-blue-400 transition-all">Attention Grabber Strategy</span>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Step 4: Script */}
+                        {currentStep === 4 && (
+                            <div className="space-y-8">
+                                <div className="glass p-10 rounded-[3rem] border-white/5 space-y-8 shadow-2xl">
+                                    <div className="flex justify-between items-center border-b border-white/5 pb-6">
+                                        <h3 className="text-[10px] font-black uppercase tracking-[0.5em] text-blue-500">Master Narrative</h3>
+                                        <button onClick={() => copyToClipboard(data.script, "Naskah disalin!")} className="flex items-center gap-2 text-zinc-500 hover:text-white transition-all text-[10px] font-bold uppercase tracking-widest bg-white/5 px-4 py-2 rounded-xl border border-white/5">
+                                            <Icon name="copy" size={14} /> Salin Naskah
+                                        </button>
+                                    </div>
+                                    <div className="font-mono text-base leading-relaxed text-zinc-400 max-h-[400px] overflow-y-auto custom-scrollbar whitespace-pre-wrap pr-4 bg-black/40 p-8 rounded-3xl border border-white/5 italic">
+                                        {data.script}
+                                    </div>
+                                </div>
+                                <button onClick={handleGoToVisual} className="w-full py-7 btn-gradient rounded-[2rem] text-[12px] font-black uppercase tracking-[0.4em] flex items-center justify-center gap-3">
+                                    CONVERT TO VISUAL PROMPT <Icon name="eye" size={20} />
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Step 5: Visuals */}
+                        {currentStep === 5 && (
+                            <div className="space-y-6">
+                                {data.imagePrompts.map((p, i) => (
+                                    <div key={i} className="glass p-8 md:p-10 rounded-[3rem] border-white/5 space-y-5 group hover:border-blue-500/30 transition-all">
+                                        <div className="flex justify-between items-center">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-500 font-black text-xs">{i+1}</div>
+                                                <span className="text-[11px] font-black uppercase tracking-[0.3em] text-zinc-200">{p.scene}</span>
+                                            </div>
+                                            <button onClick={() => copyToClipboard(p.prompt, "Prompt Scene disalin.")} className="p-2 text-zinc-600 hover:text-white transition-colors"><Icon name="copy" size={18} /></button>
+                                        </div>
+                                        <p className="text-zinc-400 font-mono text-sm leading-relaxed p-6 bg-black/60 rounded-[1.5rem] border border-white/5 italic">
+                                            {p.prompt}
+                                        </p>
+                                        <button onClick={() => { copyToClipboard(p.prompt); window.open("https://lumalabs.ai/dream-machine", "_blank"); }} className="w-full py-4 bg-zinc-800/50 hover:bg-blue-600/20 border border-white/5 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-3 transition-all">
+                                            RENDER WITH LUMA AI <Icon name="video" size={16} />
+                                        </button>
+                                    </div>
+                                ))}
+                                <button onClick={() => setCurrentStep(6)} className="w-full py-7 btn-gradient rounded-[2rem] text-[12px] font-black uppercase tracking-[0.4em] mt-10 shadow-2xl shadow-blue-500/20">
+                                    FINALIZE ASSETS <Icon name="check" size={20} />
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Step 6: Final */}
+                        {currentStep === 6 && (
+                            <div className="glass p-12 md:p-20 rounded-[5rem] text-center space-y-12 border-blue-500/20 relative overflow-hidden shadow-[0_0_100px_rgba(59,130,246,0.15)]">
+                                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/5 blur-[120px]"></div>
+                                <div className="relative inline-block">
+                                    <div className="absolute inset-0 bg-blue-500 blur-[80px] opacity-30 animate-pulse"></div>
+                                    <div className="relative w-24 h-24 bg-gradient-to-br from-blue-500 to-indigo-700 rounded-[2.5rem] flex items-center justify-center mx-auto shadow-2xl rotate-12"><Icon name="rocket" size={48} className="text-white" /></div>
+                                </div>
+                                <div className="space-y-3">
+                                    <h2 className="text-5xl md:text-7xl font-black italic uppercase tracking-tighter leading-none">LAUNCH <span className="text-blue-500 text-outline">READY</span></h2>
+                                    <p className="text-zinc-500 text-[11px] font-bold uppercase tracking-[0.8em]">Content Engine Final Output</p>
+                                </div>
+                                <div className="bg-black/40 p-10 rounded-[3.5rem] text-left border border-white/5 relative group">
+                                    <div className="absolute top-4 right-6 text-[10px] font-black text-blue-500/50 uppercase tracking-widest">Social Caption</div>
+                                    <p className="text-xl font-medium text-zinc-300 leading-relaxed italic pr-12">"{data.caption}"</p>
+                                    <button onClick={() => copyToClipboard(data.caption, "Caption disalin!")} className="absolute bottom-6 right-6 p-3 bg-white/5 hover:bg-blue-600 rounded-2xl text-zinc-400 hover:text-white transition-all"><Icon name="copy" size={20} /></button>
+                                </div>
+                                <button onClick={() => window.location.reload()} className="w-full py-7 border border-white/10 rounded-[2.5rem] text-[12px] font-black uppercase tracking-[0.5em] hover:bg-white/5 transition-all text-zinc-400">CREATE ANOTHER PROJECT</button>
+                            </div>
+                        )}
+                    </main>
+
+                    {/* Footer */}
+                    <footer className="mt-20 text-center opacity-20 hover:opacity-100 transition-opacity">
+                        <p className="text-[10px] font-black uppercase tracking-[0.5em] text-zinc-500">Design & Engine by Gemini 2.5 Advanced Engine</p>
+                    </footer>
+
+                    {/* Loading Overlay */}
+                    {loading && (
+                        <div className="fixed inset-0 bg-black/95 backdrop-blur-2xl flex flex-col items-center justify-center z-50 px-6">
+                            <div className="relative flex flex-col items-center">
+                                <div className="w-48 h-48 border-[2px] border-blue-500/10 rounded-full"></div>
+                                <div className="w-48 h-48 border-[2px] border-blue-500 border-t-transparent rounded-full animate-spin absolute top-0 shadow-[0_0_80px_rgba(59,130,246,0.3)]"></div>
+                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-2">
+                                    <Icon name="cog" size={32} className="text-blue-500 animate-[spin_3s_linear_infinite]"/>
+                                </div>
+                            </div>
+                            <div className="mt-16 text-center space-y-4">
+                                <p className="text-[12px] font-black uppercase tracking-[1em] text-blue-500 shimmer inline-block px-4">{loadingMsg}</p>
+                                <div className="flex gap-1 justify-center">
+                                    <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                                    <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                                    <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce"></div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
