@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yasin Digital - Edisi Emerald Premium</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Scheherazade+New:wght@400;700&family=Playfair+Display:wght@700;900&family=Cinzel:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    
+    <!-- Icons & Animation Libs -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+
+    <style>
+        :root {
+            --emerald-primary: #059669;
+            --emerald-light: #34d399;
+            --emerald-dark: #064e3b;
+            --gold-accent: #d4af37;
+        }
+
+        body { font-family: 'Inter', sans-serif; overflow-x: hidden; }
+        
+        .font-arabic { 
+            font-family: 'Scheherazade New', serif; 
+            line-height: 1.8;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            padding: 0.5rem 0;
+        }
+        
+        .font-accent { font-family: 'Cinzel', serif; }
+        
+        html { scroll-behavior: smooth; }
+
+        .bg-clean { 
+            background: radial-gradient(circle at top, #f0fdf4 0%, #dcfce7 100%); 
+        }
+        .dark .bg-clean { 
+            background: radial-gradient(circle at top, #022c22 0%, #011a14 100%); 
+        }
+
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.7;
+        }
+
+        /* Buku Intro Container */
+        .book-wrapper {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            perspective: 2000px;
+            display: flex;
+            background: #011a14;
+        }
+
+        /* Bagian Sampul Buku / Gerbang */
+        .book-cover {
+            position: absolute;
+            top: 0;
+            width: 50%;
+            height: 100%;
+            background: #064e3b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1001;
+            box-shadow: 0 0 100px rgba(0,0,0,0.8);
+            overflow: hidden;
+            border: 2px solid rgba(212, 175, 55, 0.2);
+        }
+
+        .cover-left {
+            left: 0;
+            transform-origin: left center;
+            background: linear-gradient(to right, #011a14, #064e3b);
+        }
+
+        .cover-right {
+            right: 0;
+            transform-origin: right center;
+            background: linear-gradient(to left, #011a14, #064e3b);
+        }
+
+        /* Ornamen Pola Islam di Pintu */
+        .pattern-overlay {
+            position: absolute;
+            inset: 0;
+            opacity: 0.15;
+            background-image: url('https://www.transparenttextures.com/patterns/arabesque.png');
+            background-size: 300px;
+        }
+
+        /* Frame Gerbang Utama */
+        .gate-arch {
+            position: absolute;
+            width: 80%;
+            height: 80%;
+            border: 4px solid var(--gold-accent);
+            opacity: 0.3;
+            clip-path: polygon(50% 0%, 100% 20%, 100% 100%, 0% 100%, 0% 20%);
+        }
+
+        .gate-frame {
+            position: relative;
+            padding: 80px 40px;
+            background: rgba(1, 26, 20, 0.8);
+            backdrop-filter: blur(25px);
+            border: 2px solid var(--gold-accent);
+            text-align: center;
+            clip-path: polygon(50% 0%, 100% 15%, 100% 100%, 0% 100%, 0% 15%);
+            width: 450px;
+            box-shadow: 0 0 50px rgba(212, 175, 55, 0.15);
+        }
+
+        .egyptian-frame {
+            position: relative;
+            transition: all 1s cubic-bezier(0.23, 1, 0.32, 1);
+            opacity: 0.3;
+            transform: translateY(30px) scale(0.98);
+            filter: blur(4px);
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(16, 185, 129, 0.1);
+            padding: 3rem 1.5rem;
+            margin-bottom: 4rem;
+            border-radius: 8px;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        .egyptian-frame.active {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            filter: blur(0);
+            border-color: rgba(52, 211, 153, 0.3);
+            background: rgba(255, 255, 255, 0.05);
+            box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .corner-ornament {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border: 2px solid var(--emerald-primary);
+            opacity: 0.2;
+            transition: all 0.6s ease;
+            pointer-events: none;
+        }
+        .active .corner-ornament { opacity: 0.8; border-color: var(--gold-accent); width: 50px; height: 50px; }
+        
+        .tl { top: 10px; left: 10px; border-right: 0; border-bottom: 0; }
+        .tr { top: 10px; right: 10px; border-left: 0; border-bottom: 0; }
+        .bl { bottom: 10px; left: 10px; border-right: 0; border-top: 0; }
+        .br { bottom: 10px; right: 10px; border-left: 0; border-top: 0; }
+
+        .karaoke-text {
+            background-size: 200% 100%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            transition: background-position 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .font-arabic.karaoke-text {
+            background-image: linear-gradient(to left, #fbbf24 50%, #94a3b8 50%);
+            background-position: -100% 0;
+            text-shadow: 0 0 10px rgba(251, 191, 36, 0.2);
+        }
+
+        .hidden-page { display: none !important; }
+
+        .btn-premium {
+            background: linear-gradient(135deg, #d4af37 0%, #aa8a2e 100%);
+            color: #011a14;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .btn-premium:hover {
+            transform: scale(1.05) translateY(-2px);
+            box-shadow: 0 15px 30px rgba(212, 175, 55, 0.4);
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #064e3b; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-clean text-emerald-900 dark:text-emerald-50 transition-colors duration-700 overflow-x-hidden min-h-screen">
+
+    <!-- Latar Belakang Interaktif -->
+    <canvas id="bg-canvas"></canvas>
+
+    <!-- HALAMAN INTRO (EFEK GERBANG MEGAH) -->
+    <div id="book-container" class="book-wrapper">
+        <div id="cover-left" class="book-cover cover-left">
+             <div class="pattern-overlay"></div>
+             <div class="gate-arch" style="right: -4px;"></div>
+             <div class="absolute right-4 top-1/2 -translate-y-1/2 h-4/5 w-1 bg-gold-accent opacity-20 blur-[1px]"></div>
+             <div id="intro-left" class="translate-x-1/2">
+                <h1 class="text-8xl font-accent font-bold text-emerald-400 opacity-10 select-none">YA</h1>
+             </div>
+        </div>
+        
+        <div id="cover-right" class="book-cover cover-right">
+            <div class="pattern-overlay"></div>
+            <div class="gate-arch" style="left: -4px;"></div>
+            <div class="absolute left-4 top-1/2 -translate-y-1/2 h-4/5 w-1 bg-gold-accent opacity-20 blur-[1px]"></div>
+            <div id="intro-right" class="-translate-x-1/2">
+                <h1 class="text-8xl font-accent font-bold text-emerald-700 opacity-10 select-none">SIN</h1>
+            </div>
+        </div>
+
+        <!-- Kontrol Tombol di Tengah Gerbang -->
+        <div id="intro-center" class="absolute inset-0 z-[1002] flex items-center justify-center">
+            <div id="gate-box" class="gate-frame group opacity-0 scale-90">
+                <!-- Ornamen Sudut Atas -->
+                <div class="absolute top-8 inset-x-0 flex justify-center opacity-40">
+                    <i data-lucide="sparkles" class="text-gold-accent w-8 h-8"></i>
+                </div>
+
+                <div class="relative z-10 space-y-10">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/2/27/Basmala.svg" alt="Basmalah" 
+                         class="h-14 invert opacity-95 mx-auto filter drop-shadow-[0_0_20px_rgba(212,175,55,0.6)]">
+                    
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-center gap-4">
+                            <div class="h-px w-8 bg-gold-accent opacity-50"></div>
+                            <p class="font-accent text-[10px] tracking-[0.6em] text-gold-accent font-bold uppercase">Digital Emerald</p>
+                            <div class="h-px w-8 bg-gold-accent opacity-50"></div>
+                        </div>
+                        <h2 class="text-6xl font-accent font-bold text-white tracking-tighter drop-shadow-lg">SURAH YASIN</h2>
+                        <p class="text-emerald-400/60 font-medium text-xs tracking-widest uppercase">Mekkah • 83 Ayat</p>
+                    </div>
+
+                    <div class="pt-6">
+                        <button onclick="animateOpenBook()" class="btn-premium relative px-12 py-5 overflow-hidden rounded-sm flex items-center gap-4 mx-auto group">
+                            <span class="font-accent font-black tracking-[0.3em] uppercase text-sm">Masuk Gerbang</span>
+                            <i data-lucide="door-open" class="w-5 h-5 transition-transform group-hover:translate-x-1"></i>
+                        </button>
+                    </div>
+                    
+                    <p class="text-[9px] text-white/30 font-accent tracking-widest uppercase pt-4">Ketuk untuk membuka kitab suci</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- APLIKASI UTAMA -->
+    <div id="main-app" class="hidden-page opacity-0">
+        
+        <header class="fixed top-0 w-full z-50">
+            <div class="bg-white/95 dark:bg-[#022c22]/95 border-b border-emerald-600/10 backdrop-blur-2xl h-24 flex items-center shadow-xl shadow-emerald-900/5">
+                <div class="max-w-7xl mx-auto w-full px-4 sm:px-8 flex justify-between items-center gap-4">
+                    
+                    <div class="flex items-center gap-3 sm:gap-6 flex-shrink-0">
+                        <button onclick="location.reload()" class="group p-2 rounded-full hover:bg-emerald-600/10 transition-all border border-emerald-600/5">
+                            <i data-lucide="chevron-left" class="w-5 h-5 text-emerald-600 group-hover:-translate-x-1 transition-transform"></i>
+                        </button>
+                        
+                        <div class="search-input-container group relative">
+                            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-emerald-500 opacity-50"></i>
+                            <input type="number" id="verse-search" min="1" max="83" placeholder="Cari Ayat..." 
+                                   class="bg-emerald-600/5 border border-emerald-600/10 rounded-lg pl-9 pr-3 py-2 text-xs font-accent focus:outline-none focus:ring-1 focus:ring-emerald-500/50 w-24 sm:w-32 transition-all"
+                                   onkeypress="handleSearch(event)">
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col items-center flex-grow max-w-sm gap-2">
+                        <div class="flex items-center gap-5">
+                            <button onclick="playPrev()" class="p-1.5 text-emerald-600/40 hover:text-emerald-500 transition-colors">
+                                <i data-lucide="skip-back" class="w-5 h-5"></i>
+                            </button>
+                            <button id="main-play-btn" onclick="togglePlay()" class="w-11 h-11 sm:w-12 sm:h-12 flex items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg shadow-emerald-900/20 hover:scale-110 active:scale-95 transition-all">
+                                <i id="play-pause-icon" data-lucide="play" class="w-6 h-6 fill-current ml-1"></i>
+                            </button>
+                            <button onclick="playNext()" class="p-1.5 text-emerald-600/40 hover:text-emerald-500 transition-colors">
+                                <i data-lucide="skip-forward" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                        <div class="relative w-full h-1 bg-emerald-600/5 rounded-full overflow-hidden">
+                            <div id="header-progress-bar" class="absolute top-0 left-0 h-full bg-emerald-500 rounded-full w-0 transition-all duration-300"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center gap-2 flex-shrink-0">
+                        <div class="hidden md:block mr-2 text-right">
+                             <p id="verse-status" class="text-[9px] text-emerald-500/60 font-bold uppercase tracking-widest">Ayat 1 / 83</p>
+                        </div>
+                        <button onclick="adjustFontSize()" class="w-9 h-9 flex items-center justify-center rounded-full bg-emerald-600/5 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all">
+                            <i data-lucide="type" class="w-4 h-4"></i>
+                        </button>
+                        <button onclick="toggleTheme()" class="w-9 h-9 flex items-center justify-center rounded-full bg-emerald-600/5 text-emerald-600 border border-emerald-600/10">
+                            <i id="theme-icon" data-lucide="moon" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="max-w-4xl mx-auto px-4 sm:px-8 pb-32 pt-36">
+            <div id="surah-bismillah" class="mb-20 text-center opacity-40 transition-all duration-1000">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/2/27/Basmala.svg" alt="Basmalah" 
+                     class="h-16 dark:invert mx-auto filter drop-shadow-[0_0_8px_rgba(16,185,129,0.2)]">
+            </div>
+            <div id="verses-container" class="space-y-8"></div>
+        </main>
+    </div>
+
+    <script>
+        function initParticles() {
+            const canvas = document.getElementById('bg-canvas');
+            const ctx = canvas.getContext('2d');
+            let particles = [];
+            let shootingStars = [];
+
+            function resize() { 
+                canvas.width = window.innerWidth; 
+                canvas.height = window.innerHeight; 
+            }
+            window.addEventListener('resize', resize);
+            resize();
+
+            class Particle {
+                constructor() { this.reset(); }
+                reset() {
+                    this.x = Math.random() * canvas.width;
+                    this.y = Math.random() * canvas.height;
+                    this.size = Math.random() * 1.5;
+                    this.speedY = Math.random() * 0.15 + 0.05;
+                    this.opacity = Math.random() * 0.4;
+                }
+                update() { 
+                    this.y -= this.speedY; 
+                    if (this.y < 0) this.reset(); 
+                }
+                draw() {
+                    ctx.fillStyle = `rgba(52, 211, 153, ${this.opacity})`;
+                    ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill();
+                }
+            }
+
+            class ShootingStar {
+                constructor() { this.reset(); }
+                reset() {
+                    this.x = Math.random() * canvas.width;
+                    this.y = Math.random() * (canvas.height * 0.5);
+                    this.length = Math.random() * 80 + 20;
+                    this.speed = Math.random() * 10 + 5;
+                    this.opacity = 0;
+                    this.active = false;
+                    this.delay = Math.random() * 5000 + 2000;
+                    this.angle = Math.PI / 4; 
+                }
+                update() {
+                    if (!this.active) {
+                        this.delay -= 16;
+                        if (this.delay <= 0) this.active = true;
+                        return;
+                    }
+                    this.x -= this.speed * Math.cos(this.angle);
+                    this.y += this.speed * Math.sin(this.angle);
+                    this.opacity += 0.05;
+                    if (this.x < -100 || this.y > canvas.height + 100) this.reset();
+                }
+                draw() {
+                    if (!this.active) return;
+                    ctx.save();
+                    ctx.strokeStyle = `rgba(251, 191, 36, ${Math.min(this.opacity, 0.6)})`;
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.moveTo(this.x, this.y);
+                    ctx.lineTo(this.x + this.length * Math.cos(this.angle), this.y - this.length * Math.sin(this.angle));
+                    ctx.stroke();
+                    
+                    ctx.fillStyle = `rgba(255, 255, 255, ${Math.min(this.opacity, 1)})`;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, 1, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+            }
+
+            for (let i = 0; i < 60; i++) particles.push(new Particle());
+            for (let i = 0; i < 3; i++) shootingStars.push(new ShootingStar());
+
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                particles.forEach(p => { p.update(); p.draw(); });
+                shootingStars.forEach(s => { s.update(); s.draw(); });
+                requestAnimationFrame(animate);
+            }
+            animate();
+        }
+
+        lucide.createIcons();
+        let surahData = [];
+        let currentVerseIndex = 0;
+        let isPlaying = false;
+        let isBismillahPlaying = false;
+        let fontSizeLevel = 1;
+        const fontSizes = ['text-2xl', 'text-3xl', 'text-4xl', 'text-5xl'];
+        
+        const audio = new Audio();
+        const bismillahAudio = new Audio('https://everyayah.com/data/Alafasy_128kbps/001001.mp3');
+        const container = document.getElementById('verses-container');
+        let isAudioLoading = false;
+
+        window.onload = () => {
+            gsap.to("#gate-box", { opacity: 1, scale: 1, duration: 1.5, delay: 0.5, ease: "expo.out" });
+            initParticles();
+        }
+
+        function animateOpenBook() {
+            const tl = gsap.timeline({
+                onComplete: () => {
+                    document.getElementById('book-container').classList.add('hidden-page');
+                    document.getElementById('main-app').classList.remove('hidden-page');
+                    gsap.to("#main-app", { opacity: 1, duration: 1 });
+                    fetchYasinData();
+                }
+            });
+
+            tl.to("#gate-box", { opacity: 0, scale: 1.2, duration: 0.7, ease: "power2.in" })
+              .to("#cover-left", { x: "-100%", duration: 2, ease: "power4.inOut" }, "-=0.2")
+              .to("#cover-right", { x: "100%", duration: 2, ease: "power4.inOut" }, "<")
+              .to("#book-container", { opacity: 0, duration: 1 }, "-=1");
+        }
+
+        async function fetchYasinData() {
+            try {
+                const [arabicRes, transRes, latinRes] = await Promise.all([
+                    fetch('https://api.alquran.cloud/v1/surah/36/editions/quran-uthmani'),
+                    fetch('https://api.alquran.cloud/v1/surah/36/editions/id.indonesian'),
+                    fetch('https://api.alquran.cloud/v1/surah/36/editions/en.transliteration')
+                ]);
+                const arabic = await arabicRes.json();
+                const trans = await transRes.json();
+                const latin = await latinRes.json();
+                surahData = arabic.data[0].ayahs.map((ayah, i) => ({
+                    number: ayah.numberInSurah,
+                    arabic: i === 0 ? ayah.text.replace("بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ", "").trim() || "يس" : ayah.text,
+                    translation: trans.data[0].ayahs[i].text,
+                    latin: latin.data[0].ayahs[i].text,
+                    audio: `https://everyayah.com/data/Alafasy_128kbps/036${String(ayah.numberInSurah).padStart(3, '0')}.mp3`
+                }));
+                renderVerses();
+            } catch (e) {
+                container.innerHTML = `<p class="text-center text-red-500 font-bold py-10">Gagal memuat data.</p>`;
+            }
+        }
+
+        function renderVerses() {
+            container.innerHTML = surahData.map((v, i) => `
+                <div id="parent-${i}" class="egyptian-frame cursor-pointer" onclick="playSpecific(${i})">
+                    <div class="corner-ornament tl"></div><div class="corner-ornament tr"></div>
+                    <div class="corner-ornament bl"></div><div class="corner-ornament br"></div>
+                    <div class="text-center space-y-8 relative z-10 w-full">
+                        <div class="flex flex-col items-center gap-6 w-full">
+                             <div class="w-8 h-8 rounded-full border border-emerald-500/30 flex items-center justify-center text-[9px] font-accent text-emerald-500 bg-emerald-500/5">${v.number}</div>
+                             <div class="w-full overflow-hidden px-2">
+                                <p id="arabic-${i}" class="font-arabic ${fontSizes[fontSizeLevel]} karaoke-text text-emerald-950 dark:text-emerald-50" dir="rtl">${v.arabic}</p>
+                             </div>
+                        </div>
+                        <div class="space-y-6 max-w-2xl mx-auto border-t border-emerald-600/10 pt-6">
+                            <p class="text-[10px] font-accent font-bold text-emerald-500 tracking-wider uppercase opacity-80 leading-relaxed">${v.latin}</p>
+                            <div class="bg-emerald-600/5 dark:bg-white/5 p-5 rounded-xl border border-emerald-600/5">
+                                <p class="text-xs sm:text-sm leading-relaxed text-emerald-800 dark:text-emerald-200 font-medium italic">"${v.translation}"</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            highlightVerse(currentVerseIndex, false);
+        }
+
+        function handleSearch(e) {
+            if (e.key === 'Enter') {
+                const val = parseInt(e.target.value);
+                if (val >= 1 && val <= 83) {
+                    playSpecific(val - 1);
+                    e.target.blur();
+                }
+            }
+        }
+
+        async function safePlay(audioElement) {
+            try {
+                isAudioLoading = true;
+                const playPromise = audioElement.play();
+                if (playPromise !== undefined) {
+                    await playPromise;
+                    isAudioLoading = false;
+                    isPlaying = true;
+                    updateUI();
+                }
+            } catch (err) {
+                isAudioLoading = false;
+            }
+        }
+
+        function playSpecific(i) {
+            currentVerseIndex = i;
+            document.querySelectorAll('.karaoke-text').forEach(el => el.style.backgroundPosition = '-100% 0');
+            audio.pause();
+            bismillahAudio.pause();
+            if (i === 0 && !audio.src.includes('036001')) {
+                isBismillahPlaying = true;
+                bismillahAudio.currentTime = 0;
+                safePlay(bismillahAudio);
+                gsap.to("#surah-bismillah", { scale: 1.05, opacity: 1 });
+            } else {
+                isBismillahPlaying = false;
+                audio.src = surahData[i].audio;
+                safePlay(audio);
+                gsap.to("#surah-bismillah", { scale: 1, opacity: 0.2 });
+            }
+            highlightVerse(i);
+        }
+
+        function highlightVerse(i, animate = true) {
+            document.querySelectorAll('.egyptian-frame').forEach(el => el.classList.remove('active'));
+            const parent = document.getElementById(`parent-${i}`);
+            if (parent) {
+                parent.classList.add('active'); 
+                if (animate) {
+                    const headerHeight = 120;
+                    const targetY = parent.offsetTop - headerHeight;
+                    window.scrollTo({ top: targetY, behavior: 'smooth' });
+                }
+            }
+            document.getElementById('verse-status').innerText = `Ayat ${i + 1} / 83`;
+        }
+
+        function togglePlay() {
+            if (isAudioLoading) return;
+            const cur = isBismillahPlaying ? bismillahAudio : audio;
+            if (!cur.src && !isBismillahPlaying) { playSpecific(0); return; }
+            if (cur.paused) safePlay(cur);
+            else { cur.pause(); isPlaying = false; updateUI(); }
+        }
+
+        function playNext() { if (currentVerseIndex < surahData.length - 1) playSpecific(currentVerseIndex + 1); }
+        function playPrev() { if (currentVerseIndex > 0) playSpecific(currentVerseIndex - 1); }
+
+        bismillahAudio.onended = () => { isBismillahPlaying = false; audio.src = surahData[0].audio; safePlay(audio); };
+        audio.onended = () => { if (currentVerseIndex < surahData.length - 1) setTimeout(playNext, 600); else { isPlaying = false; updateUI(); } };
+
+        function updateUI() {
+            const icon = document.getElementById('play-pause-icon');
+            if (icon) {
+                icon.setAttribute('data-lucide', isPlaying ? 'pause' : 'play');
+                lucide.createIcons();
+            }
+        }
+
+        function updateProgress() {
+            const cur = isBismillahPlaying ? bismillahAudio : audio;
+            if (!cur.duration) return;
+            const progress = (cur.currentTime / cur.duration) * 100;
+            document.getElementById('header-progress-bar').style.width = `${progress}%`;
+            const activeText = document.getElementById(`arabic-${currentVerseIndex}`);
+            if (activeText && !isBismillahPlaying) activeText.style.backgroundPosition = `${-100 + progress}% 0`;
+        }
+
+        audio.ontimeupdate = updateProgress;
+        bismillahAudio.ontimeupdate = updateProgress;
+        function adjustFontSize() { fontSizeLevel = (fontSizeLevel + 1) % fontSizes.length; renderVerses(); }
+        function toggleTheme() { 
+            document.documentElement.classList.toggle('dark');
+            const icon = document.getElementById('theme-icon');
+            icon.setAttribute('data-lucide', document.documentElement.classList.contains('dark') ? 'sun' : 'moon');
+            lucide.createIcons();
+        }
+    </script>
+</body>
+</html>
